@@ -11,7 +11,31 @@ if true then return {} end
 return {
   -- add gruvbox
   { "ellisonleao/gruvbox.nvim" },
-
+  -- Add Debugging NEOvim
+  {
+    "mfussenegger/nvim-dap",
+    lazy = true,
+    dependencies = {
+      "rcarriga/nvim-dap-ui",
+    },
+    keys = {
+      {
+        "<leader>F8",
+        function()
+          require("dap").toggle_breakpoint()
+        end,
+      },
+      {
+        "<leader>F9",
+        function()
+          require("dap").continue()
+        end,
+      },
+    },
+    config = function()
+      require("dapui").setup()
+    end,
+  },
   -- Configure LazyVim to load gruvbox
   {
     "LazyVim/LazyVim",
@@ -19,7 +43,25 @@ return {
       colorscheme = "gruvbox",
     },
   },
-
+  {
+    "nvim-neo-tree/neo-tree.nvim",
+    branch = "v3.x",
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "nvim-tree/nvim-web-devicons", -- not strictly required, but recommended
+      "MunifTanjim/nui.nvim",
+      -- "3rd/image.nvim", -- Optional image support in preview window: See `# Preview Mode` for more information
+    },
+  },
+  {
+    "MagicDuck/grug-far.nvim",
+    config = function()
+      require("grug-far").setup({
+        require("config.grug-file-options"),
+      })
+    end,
+  },
+  { "Bilal2453/luvit-meta", lazy = true },
   -- change trouble config
   {
     "folke/trouble.nvim",
@@ -39,7 +81,30 @@ return {
       table.insert(opts.sources, { name = "emoji" })
     end,
   },
-
+  {
+    "lukas-reineke/indent-blankline.nvim",
+    main = "ibl",
+    ---@module "ibl"
+    ---@type ibl.config
+    opts = {},
+  },
+  {
+    "romgrk/barbar.nvim",
+    dependencies = {
+      "lewis6991/gitsigns.nvim", -- OPTIONAL: for git status
+      "nvim-tree/nvim-web-devicons", -- OPTIONAL: for file icons
+    },
+    init = function()
+      vim.g.barbar_auto_setup = false
+    end,
+    opts = {
+      -- lazy.nvim will automatically call setup for you. put your options here, anything missing will use the default:
+      -- animation = true,
+      -- insert_at_start = true,
+      -- …etc.
+    },
+    version = "^1.0.0", -- optional: only update when a new 1.x version is released
+  },
   -- change some telescope options and a keymap to browse plugin files
   {
     "nvim-telescope/telescope.nvim",
