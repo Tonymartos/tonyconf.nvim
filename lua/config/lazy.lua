@@ -51,5 +51,3 @@ require("lazy").setup({
     },
   },
 })
-require("config.gitsigns_setup")
-require("config.dressing_setup")
