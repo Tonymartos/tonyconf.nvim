@@ -2,15 +2,10 @@ return {
   {
     "olimorris/codecompanion.nvim",
     dependencies = {
-      -- Dependencias principales
       "nvim-lua/plenary.nvim",
-      "nvim-treesitter/nvim-treesitter",
-      "hrsh7th/nvim-cmp", -- opcional: slash commands
-      "nvim-telescope/telescope.nvim", -- opcional: interfaz más rica
+      "hrsh7th/nvim-cmp",
       { "MeanderingProgrammer/render-markdown.nvim", ft = { "markdown", "codecompanion" } },
       { "stevearc/dressing.nvim", opts = {} },
-
-      -- Extensión opcional: mcphub
       "ravitemer/mcphub.nvim",
     },
     config = function()
@@ -19,7 +14,6 @@ return {
           language = "Spanish",
         },
         log_level = "DEBUG",
-        -- Adaptador de Ollama
         adapters = {
           ollama = function()
             return require("codecompanion.adapters").extend("ollama", {
@@ -32,7 +26,7 @@ return {
                   default = "qwen3:latest",
                 },
               },
-              parameters = { sync = true }, -- o false si prefieres async :contentReference[oaicite:2]{index=2}
+              parameters = { sync = true },
             })
           end,
         },
@@ -47,9 +41,9 @@ return {
           mcphub = {
             callback = "mcphub.extensions.codecompanion",
             opts = {
-              make_vars = true, -- variables RAG accesibles con `#`
-              make_slash_commands = true, -- slash prompts `/mcp:...`
-              make_tools = true, -- herramientas -> agentes funcionales :contentReference[oaicite:3]{index=3}
+              make_vars = true,
+              make_slash_commands = true,
+              make_tools = true,
             },
           },
         },

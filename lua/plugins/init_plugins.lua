@@ -11,31 +11,6 @@ if true then return {} end
 return {
   -- add gruvbox
   { "ellisonleao/gruvbox.nvim" },
-  -- Add Debugging NEOvim
-  {
-    "mfussenegger/nvim-dap",
-    lazy = true,
-    dependencies = {
-      "rcarriga/nvim-dap-ui",
-    },
-    keys = {
-      {
-        "<leader>F8",
-        function()
-          require("dap").toggle_breakpoint()
-        end,
-      },
-      {
-        "<leader>F9",
-        function()
-          require("dap").continue()
-        end,
-      },
-    },
-    config = function()
-      require("dapui").setup()
-    end,
-  },
   -- Configure LazyVim to load gruvbox
   {
     "LazyVim/LazyVim",
@@ -180,6 +155,20 @@ return {
   -- treesitter, mason and typescript.nvim. So instead of the above, you can use:
   { import = "lazyvim.plugins.extras.lang.typescript" },
 
+  {
+    "MeanderingProgrammer/render-markdown.nvim",
+    ft = { "markdown", "codecompanion" },
+  },
+  {
+    "OXY2DEV/markview.nvim",
+    lazy = false,
+    opts = {
+      preview = {
+        filetypes = { "markdown", "codecompanion" },
+        ignore_buftypes = {},
+      },
+    },
+  },
   -- add more treesitter parsers
   {
     "nvim-treesitter/nvim-treesitter",
