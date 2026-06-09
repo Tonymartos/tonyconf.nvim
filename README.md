@@ -312,6 +312,15 @@ Navega con `j/k` e instala con `i` sobre cada paquete.
 | `<leader>tt` | Toggle terminal flotante |
 | `<C-\>` | Toggle terminal (dentro de terminal) |
 
+### Remote SSH
+
+| Atajo | Descripcion |
+|-------|-------------|
+| `<leader>Rs` | Conectar / selector de hosts SSH |
+| `<leader>Rx` | Desconectar sesion remota |
+| `<leader>Rc` | Editar config de remote-nvim |
+| `<leader>Ri` | Info de la conexion actual |
+
 ### Temas
 
 | Atajo | Descripcion |
