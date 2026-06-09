@@ -10,8 +10,6 @@ return {
     ssh_config = {
       enabled = true,
     },
-    neovim_version = "stable",
-    neovim_user_paths = { "/usr/bin/nvim", "/usr/local/bin/nvim", "$HOME/.remote-nvim/bin/nvim" },
     client_callback = function(port, workspace_config)
       vim.print("Remote nvim started on port " .. port)
     end,
