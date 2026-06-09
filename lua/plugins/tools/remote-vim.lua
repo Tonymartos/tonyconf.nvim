@@ -10,6 +10,10 @@ return {
     ssh_config = {
       enabled = true,
     },
+    offline_mode = {
+      enabled = true,
+      no_github = true,
+    },
     client_callback = function(port, workspace_config)
       vim.print("Remote nvim started on port " .. port)
     end,
