@@ -1,6 +1,6 @@
 return {
-  "amitds1997/remote-nvim.nvim",
-  version = "0.3.11",
+  "Tonymartos/remote-nvim.nvim",
+  -- Fork con fix: AppImage download con arquitectura correcta
   dependencies = {
     "nvim-lua/plenary.nvim",
     "MunifTanjim/nui.nvim",
@@ -9,10 +9,6 @@ return {
   opts = {
     ssh_config = {
       enabled = true,
-    },
-    offline_mode = {
-      enabled = true,
-      no_github = true,
     },
     client_callback = function(port, workspace_config)
       vim.print("Remote nvim started on port " .. port)
