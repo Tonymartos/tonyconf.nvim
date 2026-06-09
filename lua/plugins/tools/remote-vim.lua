@@ -10,6 +10,8 @@ return {
     ssh_config = {
       enabled = true,
     },
+    neovim_install = false,
+    neovim_user_paths = { "/usr/bin/nvim", "/usr/local/bin/nvim" },
     client_callback = function(port, workspace_config)
       vim.print("Remote nvim started on port " .. port)
     end,
@@ -17,7 +19,7 @@ return {
   keys = {
     { "<leader>Rs", "<cmd>RemoteStart<cr>", desc = "Remote SSH: conectar" },
     { "<leader>Rx", "<cmd>RemoteStop<cr>", desc = "Remote SSH: desconectar" },
-    { "<leader>Rc", "<cmd>RemoteConfig<cr>", desc = "Remote SSH: editar config" },
+    { "<leader>Rc", "<cmd>RemoteConfig edit<cr>", desc = "Remote SSH: editar config" },
     { "<leader>Ri", "<cmd>RemoteInfo<cr>", desc = "Remote SSH: info conexion" },
   },
 }
