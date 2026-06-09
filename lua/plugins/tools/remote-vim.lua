@@ -13,6 +13,11 @@ return {
     client_callback = function(port, workspace_config)
       vim.print("Remote nvim started on port " .. port)
     end,
+    remote = {
+      copy_dirs = {
+        config = { dirs = {}, compression = { enabled = true } },
+      },
+    },
   },
   keys = {
     { "<leader>Rs", "<cmd>RemoteStart<cr>", desc = "Remote SSH: conectar" },
