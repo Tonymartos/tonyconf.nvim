@@ -23,7 +23,7 @@ return {
     remote = {
       copy_dirs = {
         config = {
-          dirs = { "lua", "init.lua", "stylua.toml" },
+          dirs = "*",
           compression = { enabled = true },
         },
         data = {
