@@ -1,0 +1,28 @@
+# Configuracion de ejemplo para Alacritty con Cascadia Code Nerd Font
+# Copia este archivo a ~/.config/alacritty/alacritty.toml
+
+[font]
+size = 13
+
+[font.normal]
+family = "CaskaydiaCove Nerd Font Mono"
+
+[font.bold]
+family = "CaskaydiaCove Nerd Font Mono"
+style = "Bold"
+
+[font.italic]
+family = "CaskaydiaCove Nerd Font Mono"
+style = "Italic"
+
+[font.bold_italic]
+family = "CaskaydiaCove Nerd Font Mono"
+style = "Bold Italic"
+
+[window]
+decorations = "Full"
+opacity = 0.92
+
+[cursor]
+style = { shape = "Beam", blinking = "On" }
+vi_mode_style = { shape = "Block", blinking = "On" }

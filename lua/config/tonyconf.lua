@@ -19,7 +19,12 @@ require("lazy").setup({
     -- add LazyVim and import its plugins
     { "LazyVim/LazyVim", import = "lazyvim.plugins" },
     -- import/override with your plugins
-    { import = "plugins" },
+    { import = "plugins.ai" },
+    { import = "plugins.dap" },
+    { import = "plugins.editor" },
+    { import = "plugins.lang" },
+    { import = "plugins.tools" },
+    { import = "plugins.ui" },
   },
   defaults = {
     -- By default, only LazyVim plugins will be lazy-loaded. Your custom plugins will load during startup.
@@ -29,6 +34,9 @@ require("lazy").setup({
     -- have outdated releases, which may break your Neovim install.
     version = false, -- always use the latest git commit
     -- version = "*", -- try installing the latest stable version for plugins that support semver
+  },
+  rocks = {
+    hererocks = false,
   },
   install = { colorscheme = { "tokyonight", "habamax" } },
   checker = {
