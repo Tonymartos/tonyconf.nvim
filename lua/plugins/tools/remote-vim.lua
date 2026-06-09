@@ -11,7 +11,14 @@ return {
       enabled = true,
     },
     client_callback = function(port, workspace_config)
-      vim.print("Remote nvim started on port " .. port)
+      local cmd = ("nvim --server localhost:%s --remote-ui"):format(port)
+      Snacks.terminal.open(cmd, {
+        win = {
+          position = "right",
+          width = 0.5,
+          enter = true,
+        },
+      })
     end,
     remote = {
       copy_dirs = {
