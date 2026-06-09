@@ -44,7 +44,8 @@ Configuracion de Neovim basada en [LazyVim](https://github.com/LazyVim/LazyVim),
 
   > **Para aplicar la fuente en Neovim:** copia [`extras/alacritty.toml`](extras/alacritty.toml)
   > en `~/.config/alacritty/alacritty.toml` y reinicia Alacritty. Si usas otro terminal
-  > (kitty, wezterm, etc.), configura la fuente en su archivo de configuracion.
+  > (kitty, wezterm, foot, Windows Terminal, iTerm2, etc.), consulta como modificar la
+  > fuente en la documentacion de tu respectivo terminal.
 
 ### Herramientas de IA (opcionales)
 
