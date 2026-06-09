@@ -22,7 +22,14 @@ return {
     end,
     remote = {
       copy_dirs = {
-        config = { dirs = {}, compression = { enabled = true } },
+        config = {
+          dirs = { "lua", "init.lua", "stylua.toml" },
+          compression = { enabled = true },
+        },
+        data = {
+          dirs = {},
+          compression = { enabled = true },
+        },
       },
     },
   },
