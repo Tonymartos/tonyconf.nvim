@@ -246,9 +246,7 @@ Navega con `j/k` e instala con `i` sobre cada paquete.
 
 ## Atajos de teclado
 
-### Lider
-
-`<leader>` = `Space`
+> Presiona `<leader>` (Space) y espera: **which-key** mostrara todos los grupos disponibles.
 
 ### IA
 
