@@ -23,21 +23,28 @@ Configuracion de Neovim basada en [LazyVim](https://github.com/LazyVim/LazyVim),
   - Debian/Ubuntu: `sudo apt install fd-find`
   - Fedora: `sudo dnf install fd-find`
   - macOS: `brew install fd`
-- Nerd Font (para iconos en dashboard y statusline) — recomendada: JetBrains Mono
+- Nerd Font — necesaria para que se vean los iconos en el dashboard y la statusline.
+  **No cambia la fuente de Neovim por si sola.** Para cambiar la fuente en Neovim
+  debes configurar tu terminal. Si usas Alacritty, copia el archivo de ejemplo mas abajo.
 
-```bash
-# Elige una Nerd Font de entre 9 opciones:
-./install.sh --with-fonts
-# (JetBrains Mono por defecto si ejecutas sin interaccion)
+  Antes de elegir una fuente, puedes previsualizar los iconos y estilos en
+  [nerdfonts.com](https://www.nerdfonts.com/font-downloads).
 
-# O especifica una directamente:
-./install.sh --with-fonts=CascadiaCode
-./install.sh --with-fonts=FiraCode
-# Opciones: JetBrainsMono, CascadiaCode, FiraCode, Hack, SourceCodePro,
-#            UbuntuMono, DejaVuSansMono, Noto, Iosevka
-```
+  ```bash
+  # Elige una Nerd Font de entre 9 opciones:
+  ./install.sh --with-fonts
+  # (JetBrains Mono por defecto si ejecutas sin interaccion)
 
-Config de terminal de ejemplo en [`extras/alacritty.toml`](extras/alacritty.toml) — copia y pega en `~/.config/alacritty/alacritty.toml`.
+  # O especifica una directamente:
+  ./install.sh --with-fonts=CascadiaCode
+  ./install.sh --with-fonts=FiraCode
+  # Opciones: JetBrainsMono, CascadiaCode, FiraCode, Hack, SourceCodePro,
+  #            UbuntuMono, DejaVuSansMono, Noto, Iosevka
+  ```
+
+  > **Para aplicar la fuente en Neovim:** copia [`extras/alacritty.toml`](extras/alacritty.toml)
+  > en `~/.config/alacritty/alacritty.toml` y reinicia Alacritty. Si usas otro terminal
+  > (kitty, wezterm, etc.), configura la fuente en su archivo de configuracion.
 
 ### Herramientas de IA (opcionales)
 
