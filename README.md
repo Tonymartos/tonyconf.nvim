@@ -12,7 +12,7 @@ Configuracion de Neovim basada en [LazyVim](https://github.com/LazyVim/LazyVim),
 ## Requisitos
 
 - Neovim >= 0.10
-- [git](https://git-scm.com)
+- [git](https://git-scm.com), [curl](https://curl.se)
 - [ripgrep](https://github.com/BurntSushi/ripgrep)
   - Arch: `sudo pacman -S ripgrep`
   - Debian/Ubuntu: `sudo apt install ripgrep`
@@ -20,9 +20,11 @@ Configuracion de Neovim basada en [LazyVim](https://github.com/LazyVim/LazyVim),
   - macOS: `brew install ripgrep`
 - [fd](https://github.com/sharkdp/fd)
   - Arch: `sudo pacman -S fd`
-  - Debian/Ubuntu: `sudo apt install fd-find`
-  - Fedora: `sudo dnf install fd-find`
+  - Debian/Ubuntu: `sudo apt install fd-find` (se crea symlink `fd` automaticamente)
+  - Fedora: `sudo dnf install fd-find` (se crea symlink `fd` automaticamente)
   - macOS: `brew install fd`
+- [lazygit](https://github.com/jesseduffield/lazygit) — gestion visual de Git desde Neovim (`<leader>gg`)
+- [lazydocker](https://github.com/jesseduffield/lazydocker) — gestion visual de Docker desde terminal
 - Nerd Font — necesaria para que se vean los iconos en el dashboard y la statusline.
   **No cambia la fuente de Neovim por si sola.** Para cambiar la fuente en Neovim
   debes configurar tu terminal. Si usas Alacritty, copia el archivo de ejemplo mas abajo.
@@ -67,7 +69,7 @@ chmod +x install.sh
 # Instalacion minima (dependencias + neovim + config + plugins)
 ./install.sh
 
-# Instalacion completa para desarrollador (con IA y fonts)
+# Instalacion completa para desarrollador (con IA, lazygit, lazydocker, fonts)
 ./install.sh --all
 
 # Si tu distro tiene nvim < 0.10, fuerza instalacion via GitHub:
@@ -75,7 +77,12 @@ chmod +x install.sh
 
 # Actualizar neovim (solo si se instalo via --install-nvim):
 ./install.sh --update-nvim
+
+# Elige una Nerd Font de entre 9 opciones:
+./install.sh --with-fonts
 ```
+
+> **macOS**: si no tienes Homebrew, el script te pregunta y lo instala automaticamente.
 
 ### Manual
 
@@ -283,18 +290,19 @@ Navega con `j/k` e instala con `i` sobre cada paquete.
 | `<Space>gb` | Run to cursor |
 | `<Space>?` | Evaluar variable bajo cursor |
 
-### Git (gitsigns)
+### Git
 
 | Atajo | Descripcion |
 |-------|-------------|
-| `<leader>hs` | Stage hunk |
-| `<leader>hr` | Reset hunk |
+| `<leader>gg` | Abrir Lazygit |
+| `<leader>gb` | Git blame |
+| `<leader>hs` | Stage hunk (gitsigns) |
+| `<leader>hr` | Reset hunk (gitsigns) |
 | `<leader>hS` | Stage buffer completo |
 | `<leader>hR` | Reset buffer completo |
 | `<leader>hp` | Previsualizar hunk |
 | `<leader>hb` | Blame de linea |
 | `<leader>hd` | Diff this |
-| `<leader>tb` | Toggle blame inline |
 
 ### Navegacion
 
@@ -323,7 +331,7 @@ Navega con `j/k` e instala con `i` sobre cada paquete.
 
 | Atajo | Descripcion |
 |-------|-------------|
-| `<leader>ut` | Rotar tema (mocha → macchiato → frappé → latte → onedark → mocha...) |
+| `<leader>ut` | Rotar tema (kanagawa → catppuccin-mocha → macchiato → frappé → latte → onedark...) |
 | `<leader>ug` | Toggle transparencia ON/OFF |
 
 ## Guia rapida por lenguaje
