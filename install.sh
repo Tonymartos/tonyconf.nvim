@@ -102,7 +102,11 @@ install_deps() {
       ;;
     debian)
       run sudo apt update -y
-      run sudo apt install -y git curl ripgrep fd-find nodejs unzip lazygit lazydocker
+      run sudo apt install -y git curl ripgrep fd-find nodejs unzip lazygit
+      # lazydocker no esta en repos Debian — instalar via script oficial
+      if ! command -v lazydocker &>/dev/null; then
+        curl https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh | bash
+      fi
       # fd-find binary is called fdfind on Debian
       if command -v fdfind &>/dev/null && ! command -v fd &>/dev/null; then
         run mkdir -p ~/.local/bin
@@ -111,7 +115,10 @@ install_deps() {
       fi
       ;;
     fedora)
-      run sudo dnf install -y git curl ripgrep fd-find nodejs unzip lazygit lazydocker
+      run sudo dnf install -y git curl ripgrep fd-find nodejs unzip lazygit
+      if ! command -v lazydocker &>/dev/null; then
+        curl https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh | bash
+      fi
       ;;
     macos)
       info "Instalando via Homebrew. Si no tienes brew: https://brew.sh"
@@ -119,7 +126,7 @@ install_deps() {
         error "Homebrew no encontrado. Instalalo desde https://brew.sh"
         exit 1
       fi
-      run brew install git curl ripgrep fd node lazygit lazydocker
+      run brew install git curl ripgrep fd node lazygit jesseduffield/lazydocker/lazydocker
       ;;    
     *)
       echo -e "${RED}[ERROR]${NC} SO no soportado: $OS_TYPE."
