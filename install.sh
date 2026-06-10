@@ -125,6 +125,11 @@ install_deps() {
       if ! command -v lazydocker &>/dev/null; then
         curl https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh | bash
       fi
+      if command -v fdfind &>/dev/null && ! command -v fd &>/dev/null; then
+        run mkdir -p ~/.local/bin
+        run ln -sf "$(command -v fdfind)" ~/.local/bin/fd
+        success "Symlink fd → fdfind creado en ~/.local/bin"
+      fi
       ;;
     macos)
       info "Instalando via Homebrew. Si no tienes brew: https://brew.sh"
