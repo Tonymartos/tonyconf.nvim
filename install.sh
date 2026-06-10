@@ -132,10 +132,23 @@ install_deps() {
       fi
       ;;
     macos)
-      info "Instalando via Homebrew. Si no tienes brew: https://brew.sh"
       if ! command -v brew &>/dev/null; then
-        error "Homebrew no encontrado. Instalalo desde https://brew.sh"
-        exit 1
+        warn "Homebrew no encontrado (necesario para instalar dependencias)."
+        echo -n "  ¿Instalar Homebrew automaticamente? [Y/n] "
+        read -r answer
+        if [ "${answer:-y}" != "n" ] && [ "${answer:-y}" != "N" ]; then
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          # Añadir brew al PATH en esta sesion
+          if [ -f /opt/homebrew/bin/brew ]; then
+            eval "$(/opt/homebrew/bin/brew shellenv)"
+          elif [ -f /usr/local/bin/brew ]; then
+            eval "$(/usr/local/bin/brew shellenv)"
+          fi
+        else
+          info "Instalacion de Homebrew rechazada. Instala manualmente: https://brew.sh"
+          info "Luego instala las dependencias: brew install git curl ripgrep fd node lazygit jesseduffield/lazydocker/lazydocker"
+          return
+        fi
       fi
       run brew install git curl ripgrep fd node lazygit jesseduffield/lazydocker/lazydocker
       ;;    
