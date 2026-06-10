@@ -94,15 +94,15 @@ OS_TYPE=$(detect_os)
 
 # ── Instalar dependencias base ───────────────────────────────────────────────
 install_deps() {
-  step "Instalando dependencias base (git, curl, ripgrep, fd, nodejs, unzip)"
+  step "Instalando dependencias base (git, curl, ripgrep, fd, nodejs, unzip, lazygit)"
 
   case "$OS_TYPE" in
     arch)
-      run sudo pacman -S --needed --noconfirm git curl ripgrep fd nodejs unzip
+      run sudo pacman -S --needed --noconfirm git curl ripgrep fd nodejs unzip lazygit
       ;;
     debian)
       run sudo apt update -y
-      run sudo apt install -y git curl ripgrep fd-find nodejs unzip
+      run sudo apt install -y git curl ripgrep fd-find nodejs unzip lazygit
       # fd-find binary is called fdfind on Debian
       if command -v fdfind &>/dev/null && ! command -v fd &>/dev/null; then
         run mkdir -p ~/.local/bin
@@ -111,7 +111,7 @@ install_deps() {
       fi
       ;;
     fedora)
-      run sudo dnf install -y git curl ripgrep fd-find nodejs unzip
+      run sudo dnf install -y git curl ripgrep fd-find nodejs unzip lazygit
       ;;
     macos)
       info "Instalando via Homebrew. Si no tienes brew: https://brew.sh"
@@ -119,13 +119,13 @@ install_deps() {
         error "Homebrew no encontrado. Instalalo desde https://brew.sh"
         exit 1
       fi
-      run brew install git curl ripgrep fd node
+      run brew install git curl ripgrep fd node lazygit
       ;;    
     *)
       echo -e "${RED}[ERROR]${NC} SO no soportado: $OS_TYPE."
       echo "  Linux: Arch (pacman), Debian/Ubuntu (apt), Fedora (dnf)"
       echo "  macOS: Homebrew (brew)"
-      echo "  Instala manualmente: git, curl, ripgrep, fd, node, unzip"
+      echo "  Instala manualmente: git, curl, ripgrep, fd, node, unzip, lazygit"
       exit 1
       ;;
   esac
