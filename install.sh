@@ -102,8 +102,11 @@ install_deps() {
       ;;
     debian)
       run sudo apt update -y
-      run sudo apt install -y git curl ripgrep fd-find nodejs unzip lazygit
-      # lazydocker no esta en repos Debian — instalar via script oficial
+      run sudo apt install -y git curl ripgrep fd-find nodejs unzip
+      # lazygit y lazydocker no estan en repos Debian — instalar via script oficial
+      if ! command -v lazygit &>/dev/null; then
+        curl https://raw.githubusercontent.com/jesseduffield/lazygit/master/scripts/install_update_linux.sh | bash
+      fi
       if ! command -v lazydocker &>/dev/null; then
         curl https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh | bash
       fi
@@ -115,7 +118,10 @@ install_deps() {
       fi
       ;;
     fedora)
-      run sudo dnf install -y git curl ripgrep fd-find nodejs unzip lazygit
+      run sudo dnf install -y git curl ripgrep fd-find nodejs unzip
+      if ! command -v lazygit &>/dev/null; then
+        curl https://raw.githubusercontent.com/jesseduffield/lazygit/master/scripts/install_update_linux.sh | bash
+      fi
       if ! command -v lazydocker &>/dev/null; then
         curl https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh | bash
       fi
