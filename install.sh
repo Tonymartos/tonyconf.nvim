@@ -655,7 +655,8 @@ install_plugins() {
   if $DRY_RUN; then
     echo "  ${YELLOW}[dry-run]${NC} nvim --headless -c 'lua vim.cmd(\"quit\")'"
   else
-    run_with_spinner "Instalando plugins" "$nvim_bin" --headless -c 'lua vim.cmd("quit")' 2>/dev/null || {
+    # El 2>/dev/null va dentro del comando para no silenciar el spinner (stderr del shell)
+    run_with_spinner "Instalando plugins" bash -c 'exec "$0" --headless -c "lua vim.cmd(\"quit\")" 2>/dev/null' "$nvim_bin" || {
       warn "La instalacion de plugins no finalizo correctamente."
       error_track "Instalacion de plugins de Neovim fallida"
     }
@@ -684,9 +685,10 @@ install_treesitter_parsers() {
     echo "  ${YELLOW}[dry-run]${NC} nvim --headless require('nvim-treesitter').install({...}):wait(300000)"
   else
     # La API de nvim-treesitter es async: install() devuelve un Task y :wait() bloquea
-    run_with_spinner "Compilando parsers de treesitter" "$nvim_bin" --headless \
-      -c "lua require('nvim-treesitter').install({$parsers_lua}):wait(300000)" \
-      -c "qa!" 2>&1 | grep -viE "^(Downloading|Unpacking|Wrote|Installing|Initialized)" || true
+    # El filtrado va dentro del hijo para no robar el stderr del spinner
+    run_with_spinner "Compilando parsers de treesitter" bash -c \
+      'exec "$0" --headless -c "lua require(\"nvim-treesitter\").install({$1}):wait(300000)" -c "qa!" 2>&1 | grep -viE "^(Downloading|Unpacking|Wrote|Installing|Initialized)" || true' \
+      "$nvim_bin" "$parsers_lua" || true
     if [ ${PIPESTATUS[0]:-0} -ne 0 ]; then
       warn "La compilacion de parsers de treesitter finalizo con errores."
       error_track "Compilacion de parsers de treesitter incompleta"
@@ -814,8 +816,10 @@ install_mason_packages() {
   } > "$lua_script"
 
   # Filtrar el ruido de Mason (descargas) pero mostrar [OK]/[FAIL]/RESUMEN
-  run_with_spinner "Instalando paquetes Mason" "$nvim_bin" --headless -c "luafile $lua_script" 2>&1 \
-    | grep -E '^\[(OK|FAIL)\]|^RESUMEN|^Paquetes encolados' || true
+  # El filtrado va dentro del hijo para no robar el stderr del spinner
+  run_with_spinner "Instalando paquetes Mason" bash -c \
+    'exec "$0" --headless -c "luafile $1" 2>&1 | grep -E "^\[(OK|FAIL)\]|^RESUMEN|^Paquetes encolados" || true' \
+    "$nvim_bin" "$lua_script"
   if [ ${PIPESTATUS[0]:-0} -ne 0 ] && [ ${PIPESTATUS[0]:-0} -ne 130 ]; then
     warn "La instalacion de paquetes Mason finalizo con codigo $?."
     error_track "Instalacion de paquetes Mason finalizo con errores"
