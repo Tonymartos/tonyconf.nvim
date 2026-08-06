@@ -75,8 +75,77 @@ info()    { echo -e "${BLUE}[INFO]${NC} $*"; }
 success() { echo -e "${GREEN}[OK]${NC} $*"; }
 warn()    { echo -e "${YELLOW}[WARN]${NC} $*"; }
 error()   { echo -e "${RED}[ERROR]${NC} $*"; }
-step()    { echo -e "\n${CYAN}${BOLD}==>${NC} ${BOLD}$*${NC}"; }
 run()     { if $DRY_RUN; then echo -e "  ${YELLOW}[dry-run]${NC} $*"; else "$@"; fi; }
+
+# ── Progreso: contador de pasos, timer y spinner ─────────────────────────────
+TOTAL_STEPS=0
+CURRENT_STEP=0
+STEP_START=0
+
+format_elapsed() {
+  local secs=${1:-0}
+  if [ "$secs" -lt 1 ]; then
+    echo "<1s"
+  elif [ "$secs" -lt 60 ]; then
+    echo "${secs}s"
+  else
+    echo "$((secs / 60))m $((secs % 60))s"
+  fi
+}
+
+step() {
+  CURRENT_STEP=$((CURRENT_STEP + 1))
+  STEP_START=$(date +%s)
+  echo -e "\n${CYAN}${BOLD}[$CURRENT_STEP/$TOTAL_STEPS] ==>${NC} ${BOLD}$*${NC}"
+}
+
+step_done() {
+  local elapsed
+  elapsed=$(format_elapsed "$(( $(date +%s) - STEP_START ))")
+  echo -e "  ${GREEN}✓${NC} Paso $CURRENT_STEP completado ${BLUE}($elapsed)${NC}"
+}
+
+# Spinner: muestra animacion mientras un proceso corre (solo con TTY)
+# Escribe a stderr para que funcione incluso si stdout va por pipe
+# Uso: cmd & spinner $! "Mensaje" ; wait $!
+spinner() {
+  local pid=$1
+  local msg=${2:-""}
+  local chars=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
+  local i=0
+  local start
+  start=$(date +%s)
+
+  # Sin TTY (pipe/redireccion): solo espera sin animar
+  if [ ! -t 2 ] || $DRY_RUN; then
+    wait "$pid" 2>/dev/null
+    return $?
+  fi
+
+  while kill -0 "$pid" 2>/dev/null; do
+    printf "\r  ${CYAN}%s${NC} %s... %s" "${chars[$i]}" "$msg" "$(format_elapsed "$(( $(date +%s) - start ))")" >&2
+    i=$(((i + 1) % ${#chars[@]}))
+    sleep 0.1
+  done
+  wait "$pid" 2>/dev/null
+  local rc=$?
+  printf "\r  ${GREEN}✓${NC} %s ${BLUE}(%s)${NC}\n" "$msg" "$(format_elapsed "$(( $(date +%s) - start ))")" >&2
+  return $rc
+}
+
+# Ejecuta un comando largo con spinner y devuelve su codigo de salida
+run_with_spinner() {
+  local label=$1
+  shift
+  if [ ! -t 2 ] || $DRY_RUN; then
+    "$@"
+    return $?
+  fi
+  "$@" &
+  local pid=$!
+  spinner "$pid" "$label"
+  return $?
+}
 
 # ── Error tracking ───────────────────────────────────────────────────────────
 ERRORS=()
@@ -394,6 +463,11 @@ update_nvim() {
 
 # ── Instalar herramientas de IA ──────────────────────────────────────────────
 install_ai() {
+  if ! $WITH_AI; then
+    info "Herramientas de IA no incluidas (instalacion --base). Usa --with-ai para incluirlas."
+    return
+  fi
+
   step "Instalando herramientas de IA"
 
   # OpenCode
@@ -581,7 +655,7 @@ install_plugins() {
   if $DRY_RUN; then
     echo "  ${YELLOW}[dry-run]${NC} nvim --headless -c 'lua vim.cmd(\"quit\")'"
   else
-    "$nvim_bin" --headless -c 'lua vim.cmd("quit")' 2>/dev/null || {
+    run_with_spinner "Instalando plugins" "$nvim_bin" --headless -c 'lua vim.cmd("quit")' 2>/dev/null || {
       warn "La instalacion de plugins no finalizo correctamente."
       error_track "Instalacion de plugins de Neovim fallida"
     }
@@ -610,7 +684,7 @@ install_treesitter_parsers() {
     echo "  ${YELLOW}[dry-run]${NC} nvim --headless require('nvim-treesitter').install({...}):wait(300000)"
   else
     # La API de nvim-treesitter es async: install() devuelve un Task y :wait() bloquea
-    "$nvim_bin" --headless \
+    run_with_spinner "Compilando parsers de treesitter" "$nvim_bin" --headless \
       -c "lua require('nvim-treesitter').install({$parsers_lua}):wait(300000)" \
       -c "qa!" 2>&1 | grep -viE "^(Downloading|Unpacking|Wrote|Installing|Initialized)" || true
     if [ ${PIPESTATUS[0]:-0} -ne 0 ]; then
@@ -740,7 +814,7 @@ install_mason_packages() {
   } > "$lua_script"
 
   # Filtrar el ruido de Mason (descargas) pero mostrar [OK]/[FAIL]/RESUMEN
-  "$nvim_bin" --headless -c "luafile $lua_script" 2>&1 \
+  run_with_spinner "Instalando paquetes Mason" "$nvim_bin" --headless -c "luafile $lua_script" 2>&1 \
     | grep -E '^\[(OK|FAIL)\]|^RESUMEN|^Paquetes encolados' || true
   if [ ${PIPESTATUS[0]:-0} -ne 0 ] && [ ${PIPESTATUS[0]:-0} -ne 130 ]; then
     warn "La instalacion de paquetes Mason finalizo con codigo $?."
@@ -772,6 +846,9 @@ if $UPDATE_NVIM; then
   exit 0
 fi
 
+# ── 8 pasos de la instalacion ────────────────────────────────────────────────
+TOTAL_STEPS=8
+
 # ── Instalar dependencias ────────────────────────────────────────────────────
 install_deps
 
@@ -789,12 +866,8 @@ install_plugins
 install_treesitter_parsers
 install_mason_packages
 
-# ── Herramientas de IA (opcional, excluidas con --base) ──────────────────────
-if $WITH_AI; then
-  install_ai
-else
-  info "Herramientas de IA no incluidas (instalacion --base). Usa --with-ai para incluirlas."
-fi
+# ── Herramientas de IA (paso 8: informa si --base) ───────────────────────────
+install_ai
 
 # ── Resumen ──────────────────────────────────────────────────────────────────
 report
