@@ -11,45 +11,34 @@ Configuracion de Neovim basada en [LazyVim](https://github.com/LazyVim/LazyVim),
 
 ## Requisitos
 
-- Neovim >= 0.10
+### Minimos (se instalan automaticamente con `install.sh`)
+
+- **Neovim >= 0.12** — `install.sh` detecta la version instalada y, si es menor,
+  descarga automaticamente la ultima version estable desde los
+  [releases oficiales](https://github.com/neovim/neovim/releases) de Neovim a
+  `~/.local/bin/nvim` (sin sudo). En macOS se instala/actualiza via Homebrew.
 - [git](https://git-scm.com), [curl](https://curl.se)
 - [ripgrep](https://github.com/BurntSushi/ripgrep)
-  - Arch: `sudo pacman -S ripgrep`
-  - Debian/Ubuntu: `sudo apt install ripgrep`
-  - Fedora: `sudo dnf install ripgrep`
-  - macOS: `brew install ripgrep`
-- [fd](https://github.com/sharkdp/fd)
-  - Arch: `sudo pacman -S fd`
-  - Debian/Ubuntu: `sudo apt install fd-find` (se crea symlink `fd` automaticamente)
-  - Fedora: `sudo dnf install fd-find` (se crea symlink `fd` automaticamente)
-  - macOS: `brew install fd`
+- [fd](https://github.com/sharkdp/fd) (en Debian/Fedora se crea el symlink `fd` automaticamente)
+- [nodejs](https://nodejs.org) + [npm](https://www.npmjs.com) — necesarios para los LSP de JS/TS y paquetes npm de Mason
+- [python3](https://www.python.org) + pip — necesarios para los paquetes Python de Mason (`pyright`, `black`, `isort`, `debugpy`, ...)
+- [gcc](https://gcc.gnu.org) + [make](https://www.gnu.org/software/make/) — necesarios para compilar los parsers de **treesitter**
+- [unzip](https://www.info-zip.org/) — para extraer la Nerd Font
 - [lazygit](https://github.com/jesseduffield/lazygit) — gestion visual de Git desde Neovim (`<leader>gg`)
 - [lazydocker](https://github.com/jesseduffield/lazydocker) — gestion visual de Docker desde terminal
-- Nerd Font — necesaria para que se vean los iconos en el dashboard y la statusline.
-  **No cambia la fuente de Neovim por si sola.** Para cambiar la fuente en Neovim
-  debes configurar tu terminal. Si usas Alacritty, copia el archivo de ejemplo mas abajo.
+- **Nerd Font** — **requisito minimo**: sin ella los iconos del dashboard, statusline
+  (lualine), explorador (neo-tree), pestañas (barbar) y completado (blink.cmp) se ven
+  como cuadrados rotos. `install.sh` la instala siempre (por defecto JetBrains Mono).
 
-  Antes de elegir una fuente, puedes previsualizar los iconos y estilos en
-  [nerdfonts.com](https://www.nerdfonts.com/font-downloads).
-
-  ```bash
-  # Elige una Nerd Font de entre 9 opciones:
-  ./install.sh --with-fonts
-  # (JetBrains Mono por defecto si ejecutas sin interaccion)
-
-  # O especifica una directamente:
-  ./install.sh --with-fonts=CascadiaCode
-  ./install.sh --with-fonts=FiraCode
-  # Opciones: JetBrainsMono, CascadiaCode, FiraCode, Hack, SourceCodePro,
-  #            UbuntuMono, DejaVuSansMono, Noto, Iosevka
-  ```
-
-  > **Para aplicar la fuente en Neovim:** copia [`extras/alacritty.toml`](extras/alacritty.toml)
+  > **Para aplicar la fuente en Neovim:** instalar la fuente no la activa por si sola.
+  > Debes seleccionarla en tu terminal. Si usas Alacritty, copia [`extras/alacritty.toml`](extras/alacritty.toml)
   > en `~/.config/alacritty/alacritty.toml` y reinicia Alacritty. Si usas otro terminal
   > (kitty, wezterm, foot, Windows Terminal, iTerm2, etc.), consulta como modificar la
   > fuente en la documentacion de tu respectivo terminal.
+  >
+  > Puedes previsualizar los iconos y estilos en [nerdfonts.com](https://www.nerdfonts.com/font-downloads).
 
-### Herramientas de IA (opcionales)
+### Herramientas de IA (opcionales, incluidas por defecto salvo con `--base`)
 
 - **[OpenCode](https://github.com/anomalyco/opencode)**
   - Arch: `sudo pacman -S opencode`
@@ -62,27 +51,30 @@ Configuracion de Neovim basada en [LazyVim](https://github.com/LazyVim/LazyVim),
 ### Automatica (recomendada)
 
 ```bash
-# Descarga el script y ejecutalo
-curl -fsSL https://forge.tonymartos.com/tonymartos/tonyconf.nvim/raw/branch/main/install.sh -o install.sh
-chmod +x install.sh
-
-# Instalacion minima (dependencias + neovim + config + plugins)
-./install.sh
-
-# Instalacion completa para desarrollador (con IA, lazygit, lazydocker, fonts)
-./install.sh --all
-
-# Si tu distro tiene nvim < 0.10, fuerza instalacion via GitHub:
-./install.sh --install-nvim
-
-# Actualizar neovim (solo si se instalo via --install-nvim):
-./install.sh --update-nvim
-
-# Elige una Nerd Font de entre 9 opciones:
-./install.sh --with-fonts
+# Descomprime el zip en una carpeta y ejecuta el script desde ahi
+./install.sh                        # Instalacion completa (IA + Nerd Font + todo)
+./install.sh --base                 # Minima: deps + Nerd Font + config + plugins + treesitter + Mason (sin IA)
+./install.sh --base --with-ai       # Minima + herramientas de IA
+./install.sh --base --with-fonts=FiraCode   # Minima + fuente especifica
+./install.sh --install-nvim         # Forzar descarga de la ultima version de Neovim desde GitHub
+./install.sh --update-nvim          # Comprobar y actualizar Neovim a la ultima version
+./install.sh --dry-run              # Muestra lo que haria sin ejecutar nada
 ```
 
+> **Neovim**: si el sistema tiene nvim < 0.12 (p.ej. Ubuntu apt trae 0.11.x),
+> el instalador descarga automaticamente la ultima version estable desde los
+> [releases de Neovim](https://github.com/neovim/neovim/releases) a `~/.local/bin/nvim`,
+> sin necesidad de sudo. `~/.local/bin` se añade a tu PATH automaticamente.
+> Usa `./install.sh --update-nvim` en cualquier momento para actualizarlo.
+
+Opciones de Nerd Font: `JetBrainsMono` (por defecto), `CascadiaCode`, `FiraCode`,
+`Hack`, `SourceCodePro`, `UbuntuMono`, `DejaVuSansMono`, `Noto`, `Iosevka`.
+
 > **macOS**: si no tienes Homebrew, el script te pregunta y lo instala automaticamente.
+>
+> **Errores**: si algun paso falla (ej. un paquete de Mason que requiere `dotnet` o
+> `go` sin instalar), el script continua y al final muestra un resumen
+> "Se produjeron errores durante la instalacion" con la lista de lo que fallo.
 
 ### Manual
 
@@ -131,7 +123,7 @@ Navega con `j/k` e instala con `i` sobre cada paquete.
 |---------|----------|
 | `netcoredbg` | C#/.NET |
 | `codelldb` | Rust, C, C++ |
-| `node-debug2-adapter` | JavaScript / TypeScript |
+| `js-debug-adapter` | JavaScript / TypeScript |
 | `debugpy` | Python |
 | `delve` | Go |
 
@@ -372,7 +364,7 @@ Para usar el LSP: abre cualquier archivo `.gd` y el LSP se conectara automaticam
 ### TypeScript / JavaScript
 
 - LSP: `tsserver` (via LazyVim extras)
-- Debugger: `node-debug2-adapter` (instalar via `:Mason`)
+- Debugger: `js-debug-adapter` (instalar via `:Mason`)
 
 ## Personalizacion
 

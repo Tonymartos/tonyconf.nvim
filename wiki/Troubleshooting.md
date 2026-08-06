@@ -28,18 +28,23 @@ git clone https://github.com/folke/lazy.nvim.git /tmp/test-lazy
 ### Neovim muy antiguo
 
 ```bash
-# Requiere Neovim >= 0.10
+# Se requiere Neovim >= 0.12
 nvim --version
 
-# Arch Linux
-sudo pacman -Syu neovim
+# La forma recomendada: descargar la ultima version desde los releases oficiales de GitHub
+./install.sh --install-nvim
+# (descarga a ~/.local/bin/nvim, sin sudo)
 
-# Debian/Ubuntu
-sudo apt upgrade neovim
+# Alternativa: actualizar con el instalador
+./install.sh --update-nvim
 
-# Fedora
-sudo dnf upgrade neovim
+# En macOS se actualiza con:
+brew upgrade neovim
 ```
+
+> Nota: los gestores de paquetes (apt/dnf/pacman) suelen traer versiones antiguas
+> de Neovim. Esta configuracion siempre se instala desde los
+> [releases oficiales](https://github.com/neovim/neovim/releases) de GitHub.
 
 ## LSP / Mason
 

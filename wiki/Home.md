@@ -16,16 +16,21 @@ Configuracion personal de Neovim basada en [LazyVim](https://github.com/LazyVim/
 ## Instalacion rapida
 
 ```bash
-# Requisitos
+# Requisitos (instalador automatico en install.sh)
 
-## Arch
-sudo pacman -S neovim ripgrep fd
+## Neovim >= 0.12 — SIEMPRE desde los releases oficiales de GitHub
+# El instalador descarga la ultima version estable a ~/.local/bin/nvim (sin sudo):
+#   ./install.sh --install-nvim
+# (En macOS se instala/actualiza via Homebrew: brew install neovim)
 
-## Debian/Ubuntu
-sudo apt install neovim ripgrep fd-find
+## Arch (dependencias)
+sudo pacman -S ripgrep fd
 
-## Fedora
-sudo dnf install neovim ripgrep fd-find
+## Debian/Ubuntu (dependencias)
+sudo apt install ripgrep fd-find
+
+## Fedora (dependencias)
+sudo dnf install ripgrep fd-find
 
 # Herramientas de IA (opcionales)
 

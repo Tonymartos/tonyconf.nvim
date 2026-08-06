@@ -8,10 +8,9 @@ CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
 # ── Flags ────────────────────────────────────────────────────────────────────
 INSTALL_NVIM=false
 UPDATE_NVIM=false
-WITH_AI=false
-WITH_FONTS=""
+WITH_AI=true
+WITH_FONTS="default"
 DRY_RUN=false
-CONFIG_REPO="https://forge.tonymartos.com/tonymartos/tonyconf.nvim.git"
 
 # ── Help ─────────────────────────────────────────────────────────────────────
 usage() {
@@ -21,21 +20,32 @@ ${BOLD}tonyconf.nvim - Instalador${NC}
 Uso: ./install.sh [flags]
 
 ${BOLD}Flags:${NC}
-  --install-nvim    Fuerza instalacion de Neovim via curl desde GitHub
-  --update-nvim     Actualiza Neovim (solo si se instalo via curl)
-  --with-ai         Instala OpenCode y Claude Code
-  --with-fonts      Elige una Nerd Font para instalar (por defecto JetBrains Mono)
-  --with-fonts=<F>  Instala una Nerd Font especifica (JetBrainsMono, CascadiaCode,
-                    FiraCode, Hack, SourceCodePro, UbuntuMono, DejaVuSansMono, Noto, Iosevka)
-  --all             Equivale a --with-ai --with-fonts
+  --install-nvim    Fuerza re-descarga de Neovim desde GitHub (ultima version)
+  --update-nvim     Comprueba y actualiza Neovim a la ultima version
+  --base            Instalacion minima: deps, Nerd Font, config, plugins,
+                    treesitter y Mason (sin herramientas de IA)
+  --with-ai         Instala OpenCode y Claude Code (por defecto, salvo con --base)
+  --with-fonts=<F>  Elige una Nerd Font (por defecto JetBrains Mono):
+                    JetBrainsMono, CascadiaCode, FiraCode, Hack, SourceCodePro,
+                    UbuntuMono, DejaVuSansMono, Noto, Iosevka
+  --all             Equivale a instalacion completa (por defecto sin flags)
   --dry-run         Muestra que haria sin ejecutar nada
   -h, --help        Muestra esta ayuda
 
+${BOLD}Requisitos minimos:${NC}
+  - Nerd Font (siempre se instala: la UI de Neovim necesita iconos)
+  - Neovim >= 0.12 (se instala automaticamente la ultima version desde GitHub)
+  - git, curl, ripgrep, fd, nodejs, npm, python3, unzip
+  - gcc + make (para compilar parsers de treesitter)
+  - lazygit y lazydocker (integrados en la config)
+
 ${BOLD}Ejemplos:${NC}
-  ./install.sh                        # Instalacion base minima
-  ./install.sh --install-nvim         # Si tu distro no tiene nvim >= 0.10
-  ./install.sh --all                  # Instalacion completa para dev
-  ./install.sh --update-nvim          # Actualizar nvim instalado via curl
+  ./install.sh                        # Instalacion completa (incluye IA y Nerd Font)
+  ./install.sh --base                 # Minima (sin herramientas de IA)
+  ./install.sh --base --with-ai       # Minima + herramientas de IA
+  ./install.sh --base --with-fonts=FiraCode
+  ./install.sh --install-nvim         # Forzar Neovim ultima version desde GitHub
+  ./install.sh --update-nvim          # Actualizar Neovim a la ultima version
 EOF
   exit 0
 }
@@ -45,6 +55,7 @@ for arg in "$@"; do
   case "$arg" in
     --install-nvim) INSTALL_NVIM=true ;;
     --update-nvim)  UPDATE_NVIM=true ;;
+    --base)         WITH_AI=false ;;
     --with-ai)      WITH_AI=true ;;
     --with-fonts=*) WITH_FONTS="${arg#*=}" ;;
     --with-fonts)   WITH_FONTS="default" ;;
@@ -66,6 +77,26 @@ warn()    { echo -e "${YELLOW}[WARN]${NC} $*"; }
 error()   { echo -e "${RED}[ERROR]${NC} $*"; }
 step()    { echo -e "\n${CYAN}${BOLD}==>${NC} ${BOLD}$*${NC}"; }
 run()     { if $DRY_RUN; then echo -e "  ${YELLOW}[dry-run]${NC} $*"; else "$@"; fi; }
+
+# ── Error tracking ───────────────────────────────────────────────────────────
+ERRORS=()
+error_track() { ERRORS+=("$*"); }
+
+report() {
+  echo ""
+  echo -e "${BOLD}${GREEN}════════════════════════════════════════════════════════════${NC}"
+  if [ ${#ERRORS[@]} -eq 0 ]; then
+    echo -e "${BOLD}${GREEN}  Instalacion completada sin errores!${NC}"
+  else
+    echo -e "${BOLD}${YELLOW}  Se produjeron errores durante la instalacion (${#ERRORS[@]}):${NC}"
+    for e in "${ERRORS[@]}"; do
+      echo -e "    ${RED}✗${NC} $e"
+    done
+    echo ""
+    echo -e "  ${YELLOW}Revisa los mensajes anteriores para mas detalles.${NC}"
+    echo -e "  ${YELLOW}Puedes reintentar los pasos fallidos o resolverlos manualmente.${NC}"
+  fi
+}
 
 # ── Detectar OS ──────────────────────────────────────────────────────────────
 detect_os() {
@@ -92,23 +123,43 @@ detect_os() {
 
 OS_TYPE=$(detect_os)
 
+# ── Instalar lazygit desde binario ──────────────────────────────────────────
+CURL_OPTS="-fsSL --connect-timeout 10 --max-time 60"
+
+install_lazygit() {
+  if command -v lazygit &>/dev/null; then
+    return 0
+  fi
+  info "Descargando lazygit..."
+  local lg_url
+  lg_url=$(curl $CURL_OPTS https://api.github.com/repos/jesseduffield/lazygit/releases/latest 2>/dev/null \
+    | grep browser_download_url | grep linux_x86_64 | head -1 | cut -d '"' -f4 || true)
+  if [ -n "$lg_url" ]; then
+    run curl $CURL_OPTS "$lg_url" -o /tmp/lazygit.tar.gz
+    run tar xzf /tmp/lazygit.tar.gz -C /tmp
+    run mkdir -p ~/.local/bin
+    run install /tmp/lazygit ~/.local/bin/lazygit
+    run rm /tmp/lazygit.tar.gz /tmp/lazygit
+    success "lazygit instalado"
+  else
+    warn "No se pudo descargar lazygit. Instalalo manualmente: https://github.com/jesseduffield/lazygit/releases"
+  fi
+}
+
 # ── Instalar dependencias base ───────────────────────────────────────────────
 install_deps() {
-  step "Instalando dependencias base (git, curl, ripgrep, fd, nodejs, unzip, lazygit, lazydocker)"
+  step "Instalando dependencias base (git, curl, ripgrep, fd, nodejs, npm, python3, unzip, gcc, make, lazygit, lazydocker)"
 
   case "$OS_TYPE" in
     arch)
-      run sudo pacman -S --needed --noconfirm git curl ripgrep fd nodejs unzip lazygit lazydocker
+      run sudo pacman -S --needed --noconfirm git curl ripgrep fd nodejs npm python python-pip unzip base-devel lazygit lazydocker
       ;;
     debian)
       run sudo apt update -y
-      run sudo apt install -y git curl ripgrep fd-find nodejs unzip
-      # lazygit y lazydocker no estan en repos Debian — instalar via script oficial
-      if ! command -v lazygit &>/dev/null; then
-        curl https://raw.githubusercontent.com/jesseduffield/lazygit/master/scripts/install_update_linux.sh | bash
-      fi
+      run sudo apt install -y git curl ripgrep fd-find nodejs npm python3 python3-pip python3-venv unzip gcc make
+      install_lazygit
       if ! command -v lazydocker &>/dev/null; then
-        curl https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh | bash
+        curl $CURL_OPTS https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh | bash
       fi
       # fd-find binary is called fdfind on Debian
       if command -v fdfind &>/dev/null && ! command -v fd &>/dev/null; then
@@ -118,12 +169,10 @@ install_deps() {
       fi
       ;;
     fedora)
-      run sudo dnf install -y git curl ripgrep fd-find nodejs unzip
-      if ! command -v lazygit &>/dev/null; then
-        curl https://raw.githubusercontent.com/jesseduffield/lazygit/master/scripts/install_update_linux.sh | bash
-      fi
+      run sudo dnf install -y git curl ripgrep fd-find nodejs npm python3 python3-pip unzip gcc make
+      install_lazygit
       if ! command -v lazydocker &>/dev/null; then
-        curl https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh | bash
+        curl $CURL_OPTS https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh | bash
       fi
       if command -v fdfind &>/dev/null && ! command -v fd &>/dev/null; then
         run mkdir -p ~/.local/bin
@@ -137,7 +186,7 @@ install_deps() {
         echo -n "  ¿Instalar Homebrew automaticamente? [Y/n] "
         read -r answer
         if [ "${answer:-y}" != "n" ] && [ "${answer:-y}" != "N" ]; then
-          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          /bin/bash -c "$(curl $CURL_OPTS https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           # Añadir brew al PATH en esta sesion
           if [ -f /opt/homebrew/bin/brew ]; then
             eval "$(/opt/homebrew/bin/brew shellenv)"
@@ -146,20 +195,33 @@ install_deps() {
           fi
         else
           info "Instalacion de Homebrew rechazada. Instala manualmente: https://brew.sh"
-          info "Luego instala las dependencias: brew install git curl ripgrep fd node lazygit jesseduffield/lazydocker/lazydocker"
+          info "Luego instala las dependencias: brew install git curl ripgrep fd node npm python3 lazygit jesseduffield/lazydocker/lazydocker"
           return
         fi
       fi
-      run brew install git curl ripgrep fd node lazygit jesseduffield/lazydocker/lazydocker
+      run brew install git curl ripgrep fd node npm python3 lazygit jesseduffield/lazydocker/lazydocker
       ;;    
     *)
       echo -e "${RED}[ERROR]${NC} SO no soportado: $OS_TYPE."
       echo "  Linux: Arch (pacman), Debian/Ubuntu (apt), Fedora (dnf)"
       echo "  macOS: Homebrew (brew)"
-      echo "  Instala manualmente: git, curl, ripgrep, fd, node, unzip, lazygit, lazydocker"
+      echo "  Instala manualmente: git, curl, ripgrep, fd, node, npm, python3, unzip, lazygit, lazydocker"
       exit 1
       ;;
   esac
+
+  # Configurar npm con prefix de usuario (para que Mason no necesite sudo)
+  if command -v npm &>/dev/null; then
+    local npm_prefix
+    npm_prefix=$(npm config get prefix 2>/dev/null || echo "/usr")
+    if echo "$npm_prefix" | grep -qE '^/usr'; then
+      run mkdir -p ~/.local
+      run npm config set prefix ~/.local
+      info "npm prefix configurado a ~/.local (instalaciones globales sin sudo)"
+    fi
+  else
+    warn "npm no encontrado. Instala nodejs/npm manualmente para los paquetes de Mason."
+  fi
 
   success "Dependencias base instaladas"
 
@@ -177,38 +239,21 @@ install_deps() {
   export PATH="$HOME/.local/bin:$PATH"
 }
 
-# ── Instalar Neovim desde gestor de paquetes ─────────────────────────────────
-install_nvim_pkg() {
-  step "Instalando Neovim desde gestor de paquetes ($OS_TYPE)"
-
-  case "$OS_TYPE" in
-    arch)
-      run sudo pacman -S --needed --noconfirm neovim
-      ;;
-    debian)
-      run sudo apt install -y neovim
-      ;;
-    fedora)
-      run sudo dnf install -y neovim
-      ;;
-    macos)
-      run brew install neovim
-      ;;
-  esac
-}
-
-# ── Instalar Neovim desde GitHub releases (fallback) ─────────────────────────
+# ── Instalar Neovim desde GitHub releases (Linux) ────────────────────────────
 install_nvim_curl() {
   step "Descargando Neovim desde GitHub releases"
 
   local os_arch
   case "$(uname -s)" in
-    Darwin)
-      os_arch="macos-$(uname -m)"
-      # macOS uses arm64 or x86_64
-      ;;
     Linux)
-      os_arch="linux64"
+      case "$(uname -m)" in
+        x86_64) os_arch="linux-x86_64" ;;
+        aarch64|arm64) os_arch="linux-arm64" ;;
+        *)
+          error "Arquitectura no soportada: $(uname -m)."
+          exit 1
+          ;;
+      esac
       ;;
     *)
       error "SO no soportado para instalacion via curl."
@@ -218,12 +263,12 @@ install_nvim_curl() {
 
   local pattern="nvim-${os_arch}.tar.gz"
   local latest_url
-  latest_url=$(curl -s https://api.github.com/repos/neovim/neovim/releases/latest 2>/dev/null \
+  latest_url=$(curl $CURL_OPTS https://api.github.com/repos/neovim/neovim/releases/latest 2>/dev/null \
     | grep browser_download_url \
     | grep "$pattern" \
     | grep -v 'sha256sum' \
     | head -1 \
-    | cut -d '"' -f4)
+    | cut -d '"' -f4 || true)
 
   if [ -z "$latest_url" ]; then
     error "No se pudo obtener la URL de descarga de GitHub."
@@ -232,15 +277,20 @@ install_nvim_curl() {
 
   local version
   version=$(echo "$latest_url" | grep -oP 'v\K[0-9]+\.[0-9]+\.[0-9]+' || echo "desconocida")
-  info "Ultima version: v$version"
+  info "Descargando Neovim v$version ($os_arch)..."
 
   run mkdir -p ~/.local
 
   local nvim_dir
   nvim_dir=$(basename "$latest_url" .tar.gz)
-  run rm -rf ~/.local/"$nvim_dir" ~/.local/nvim.tar.gz
 
-  run curl -fSL "$latest_url" -o ~/.local/nvim.tar.gz
+  # Limpiar instalaciones previas de nvim en ~/.local
+  for old in ~/.local/nvim-linux-*; do
+    [ -e "$old" ] && run rm -rf "$old"
+  done
+  run rm -f ~/.local/nvim.tar.gz ~/.local/bin/nvim
+
+  run curl $CURL_OPTS "$latest_url" -o ~/.local/nvim.tar.gz
   run tar xzf ~/.local/nvim.tar.gz -C ~/.local/
   run rm ~/.local/nvim.tar.gz
 
@@ -249,51 +299,82 @@ install_nvim_curl() {
   run ln -sf ~/.local/"$nvim_dir"/bin/nvim ~/.local/bin/nvim
 
   success "Neovim v$version instalado en ~/.local/$nvim_dir/"
-
-  local nvim_bin
-  if [ -x ~/.local/bin/nvim ]; then
-    nvim_bin=~/.local/bin/nvim
-  elif [ -x ~/.local/"$nvim_dir"/bin/nvim ]; then
-    nvim_bin=~/.local/"$nvim_dir"/bin/nvim
-  else
-    error "No se encuentra el binario de nvim tras la instalacion."
-    exit 1
-  fi
-
-  echo "$nvim_bin"
+  echo ~/.local/bin/nvim
 }
 
-# ── Actualizar Neovim via curl ───────────────────────────────────────────────
-update_nvim_curl() {
-  step "Comprobando actualizacion de Neovim (instalacion via curl)"
+# ── Instalar Neovim desde Homebrew (macOS) ───────────────────────────────────
+install_nvim_brew() {
+  step "Instalando Neovim desde Homebrew (macOS)"
 
-  local nvim_path
-  nvim_path=$(command -v nvim 2>/dev/null || echo "")
-
-  if [ -z "$nvim_path" ]; then
-    error "Neovim no esta instalado. Usa --install-nvim para instalarlo."
+  if ! command -v brew &>/dev/null; then
+    error "Homebrew no encontrado. Instalalo desde https://brew.sh"
     exit 1
   fi
 
-  # Verificar que esta instalado via curl (~/.local/)
-  if ! echo "$nvim_path" | grep -q '.local'; then
-    warn "Neovim se instalo via gestor de paquetes ($nvim_path)."
-    if [ -f ~/.local/bin/nvim ]; then
-      :
-    else
-      if command -v brew &>/dev/null; then
-        info "Actualiza con: brew upgrade neovim"
-      else
-        info "Actualiza con: sudo apt/dnf/pacman upgrade neovim"
-      fi
-      exit 0
+  run brew install neovim
+  success "Neovim instalado via brew ($(nvim --version | head -1))"
+  command -v nvim
+}
+
+# ── Garantizar Neovim >= 0.12 ────────────────────────────────────────────────
+ensure_nvim() {
+  step "Comprobando Neovim (requiere >= 0.12)"
+
+  # --install-nvim fuerza re-descarga
+  if $INSTALL_NVIM; then
+    info "Forzando instalacion de la ultima version desde GitHub..."
+    install_nvim_curl
+    return 0
+  fi
+
+  local nvim_bin
+  nvim_bin=$(command -v nvim 2>/dev/null || echo "")
+
+  if [ -n "$nvim_bin" ]; then
+    local version
+    version=$("$nvim_bin" --version | head -1 | grep -oP '\d+\.\d+\.\d+' || echo "0.0.0")
+    local major minor
+    major=$(echo "$version" | cut -d. -f1)
+    minor=$(echo "$version" | cut -d. -f2)
+    if [ "$major" -ge 1 ] || { [ "$major" -eq 0 ] && [ "$minor" -ge 12 ]; }; then
+      success "Neovim v$version detectado (>= 0.12)"
+      return 0
     fi
+    warn "Neovim v$version detectado. Se necesita >= 0.12 para los plugins actuales."
+  else
+    warn "Neovim no encontrado."
+  fi
+
+  info "Instalando la ultima version estable de Neovim..."
+  if [ "$OS_TYPE" = "macos" ]; then
+    install_nvim_brew
+  else
+    install_nvim_curl
+  fi
+}
+
+# ── Actualizar Neovim (modo independiente) ───────────────────────────────────
+update_nvim() {
+  step "Comprobando actualizacion de Neovim"
+
+  local nvim_bin
+  nvim_bin=$(command -v nvim 2>/dev/null || echo "")
+
+  if [ -z "$nvim_bin" ]; then
+    info "Neovim no instalado. Instalando ultima version..."
+    ensure_nvim
+    exit 0
   fi
 
   local current_version latest_version
-  current_version=$(nvim --version | head -1 | grep -oP '\d+\.\d+\.\d+' || echo "0.0.0")
-  latest_version=$(curl -s https://api.github.com/repos/neovim/neovim/releases/latest 2>/dev/null \
+  current_version=$("$nvim_bin" --version | head -1 | grep -oP '\d+\.\d+\.\d+' || echo "0.0.0")
+  latest_version=$(curl $CURL_OPTS https://api.github.com/repos/neovim/neovim/releases/latest 2>/dev/null \
     | grep '"tag_name"' | head -1 | grep -oP 'v\K[0-9]+\.[0-9]+\.[0-9]+' || echo "")
+
+  if [ -z "$latest_version" ]; then
+    error "No se pudo consultar la ultima version de Neovim."
+    exit 1
+  fi
 
   if [ "$current_version" = "$latest_version" ]; then
     success "Neovim ya esta en la ultima version (v$current_version)."
@@ -301,32 +382,14 @@ update_nvim_curl() {
   fi
 
   info "Actualizando v$current_version → v$latest_version"
-  install_nvim_curl
-  success "Neovim actualizado a v$latest_version"
-  exit 0
-}
-
-# ── Comprobar version de Neovim ──────────────────────────────────────────────
-check_nvim_version() {
-  local nvim_bin="${1:-nvim}"
-
-  if ! command -v "$nvim_bin" &>/dev/null; then
-    return 1
-  fi
-
-  local version
-  version=$("$nvim_bin" --version | head -1 | grep -oP '\d+\.\d+\.\d+' || echo "0.0.0")
-  local major minor
-  major=$(echo "$version" | cut -d. -f1)
-  minor=$(echo "$version" | cut -d. -f2)
-
-  if [ "$major" -ge 1 ] || { [ "$major" -eq 0 ] && [ "$minor" -ge 10 ]; }; then
-    success "Neovim v$version detectado (>= 0.10)"
-    return 0
+  if [ "$OS_TYPE" = "macos" ]; then
+    run brew upgrade neovim
+    success "Neovim actualizado via brew"
   else
-    warn "Neovim v$version detectado. Se requiere >= 0.10."
-    return 2
+    install_nvim_curl
+    success "Neovim actualizado a v$latest_version"
   fi
+  exit 0
 }
 
 # ── Instalar herramientas de IA ──────────────────────────────────────────────
@@ -345,13 +408,13 @@ install_ai() {
         Darwin) os_pattern="darwin" ;;
         Linux)  os_pattern="linux" ;;
       esac
-      url=$(curl -s https://api.github.com/repos/anomalyco/opencode/releases/latest 2>/dev/null \
+      url=$(curl $CURL_OPTS https://api.github.com/repos/anomalyco/opencode/releases/latest 2>/dev/null \
         | grep browser_download_url \
         | grep "$os_pattern" \
         | head -1 \
-        | cut -d '"' -f4)
+        | cut -d '"' -f4 || true)
       if [ -n "$url" ]; then
-        run curl -fSL "$url" -o /tmp/opencode.tar.gz
+        run curl $CURL_OPTS "$url" -o /tmp/opencode.tar.gz
         run tar xzf /tmp/opencode.tar.gz -C ~/.local/bin/
         run rm /tmp/opencode.tar.gz
         success "OpenCode instalado via binario"
@@ -364,7 +427,7 @@ install_ai() {
     success "Claude Code ya instalado ($(claude --version 2>/dev/null || echo '?'))"
   else
     info "Instalando Claude Code..."
-    run curl -fsSL https://claude.ai/install.sh | bash
+    run curl $CURL_OPTS https://claude.ai/install.sh | bash
     success "Claude Code instalado"
   fi
 }
@@ -450,7 +513,7 @@ install_fonts() {
   local zip_url="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/${font_key}.zip"
 
   info "Descargando $font_label Nerd Font..."
-  run curl -fSL "$zip_url" -o "/tmp/${font_key}.zip"
+  run curl $CURL_OPTS "$zip_url" -o "/tmp/${font_key}.zip"
   run unzip -oq "/tmp/${font_key}.zip" -d "$fonts_dir"
   run rm "/tmp/${font_key}.zip"
 
@@ -461,19 +524,25 @@ install_fonts() {
   success "$font_label Nerd Font instalada en $fonts_dir"
 }
 
-# ── Clonar config ────────────────────────────────────────────────────────────
-clone_config() {
-  step "Clonando configuracion de Neovim"
-
+# ── Instalar config desde el directorio actual ───────────────────────────────
+install_config() {
   local target="$HOME/.config/nvim"
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+  if [ ! -f "$script_dir/init.lua" ] || [ ! -d "$script_dir/lua" ]; then
+    error "No se encuentra la config de Neovim junto a install.sh ($script_dir)."
+    exit 1
+  fi
+
+  step "Instalando configuracion de Neovim desde el directorio actual"
 
   if [ -d "$target/.git" ]; then
     warn "Ya existe una config de Neovim con git en $target"
     echo -n "  ¿Sobrescribir? (respalda la actual) [y/N] "
     read -r answer
     if [ "${answer,,}" != "y" ]; then
-      info "Saltando clonado de config. Puedes instalarla manualmente:"
-      info "  git clone $CONFIG_REPO $target"
+      info "Saltando instalacion de config."
       return
     fi
   fi
@@ -483,8 +552,17 @@ clone_config() {
     info "Config anterior respaldada"
   fi
 
-  run git clone "$CONFIG_REPO" "$target"
-  success "Config clonada en $target"
+  # Copiar solo lo necesario para Neovim (no install.sh, wiki/, bashrc, extras/)
+  run mkdir -p "$target"
+  run cp "$script_dir/init.lua" "$target/init.lua"
+  run cp -r "$script_dir/lua" "$target/lua"
+  if [ -f "$script_dir/stylua.toml" ]; then
+    run cp "$script_dir/stylua.toml" "$target/stylua.toml"
+  fi
+  if [ -f "$script_dir/.neoconf.json" ]; then
+    run cp "$script_dir/.neoconf.json" "$target/.neoconf.json"
+  fi
+  success "Config copiada en $target"
 }
 
 # ── Instalar plugins ─────────────────────────────────────────────────────────
@@ -503,10 +581,45 @@ install_plugins() {
   if $DRY_RUN; then
     echo "  ${YELLOW}[dry-run]${NC} nvim --headless -c 'lua vim.cmd(\"quit\")'"
   else
-    "$nvim_bin" --headless -c 'lua vim.cmd("quit")' 2>/dev/null || true
+    "$nvim_bin" --headless -c 'lua vim.cmd("quit")' 2>/dev/null || {
+      warn "La instalacion de plugins no finalizo correctamente."
+      error_track "Instalacion de plugins de Neovim fallida"
+    }
   fi
 
   success "Plugins instalados"
+}
+
+# ── Compilar parsers de treesitter ───────────────────────────────────────────
+install_treesitter_parsers() {
+  step "Compilando parsers de treesitter (requiere gcc/make)"
+
+  local nvim_bin
+  nvim_bin=$(command -v nvim 2>/dev/null || echo "")
+
+  if [ -z "$nvim_bin" ]; then
+    warn "Neovim no encontrado. Omite parsers de treesitter."
+    return
+  fi
+
+  # Parsers del runtime de nvim (siempre usados) + lenguajes de la config
+  local parsers_lua="'lua','vim','vimdoc','query','markdown','markdown_inline','json','yaml','bash','html','css','javascript','typescript','python','rust','go','c','cpp','c_sharp'"
+  info "Instalando parsers: lua, vim, vimdoc, query, markdown, json, yaml, bash, html, css, js, ts, python, rust, go, c, cpp, c_sharp"
+
+  if $DRY_RUN; then
+    echo "  ${YELLOW}[dry-run]${NC} nvim --headless require('nvim-treesitter').install({...}):wait(300000)"
+  else
+    # La API de nvim-treesitter es async: install() devuelve un Task y :wait() bloquea
+    "$nvim_bin" --headless \
+      -c "lua require('nvim-treesitter').install({$parsers_lua}):wait(300000)" \
+      -c "qa!" 2>&1 | grep -viE "^(Downloading|Unpacking|Wrote|Installing|Initialized)" || true
+    if [ ${PIPESTATUS[0]:-0} -ne 0 ]; then
+      warn "La compilacion de parsers de treesitter finalizo con errores."
+      error_track "Compilacion de parsers de treesitter incompleta"
+    fi
+  fi
+
+  success "Parsers de treesitter instalados"
 }
 
 # ── Instalar paquetes Mason ──────────────────────────────────────────────────
@@ -539,20 +652,108 @@ install_mason_packages() {
     marksman html-lsp css-lsp
     dockerfile-language-server gopls
     # Debuggers
-    netcoredbg codelldb node-debug2-adapter debugpy delve
+    netcoredbg codelldb debugpy delve
     # Formateadores
     csharpier stylua shfmt prettier black isort gofumpt
     # Linters
     shellcheck ruff eslint_d markdownlint hadolint
   )
 
+  # Filtrar paquetes cuyo toolchain no esta instalado (evita instaladores colgados)
+  local filtered=()
+  for pkg in "${packages[@]}"; do
+    case "$pkg" in
+      csharpier)
+        if command -v dotnet &>/dev/null; then filtered+=("$pkg"); else warn "Saltando csharpier (requiere dotnet)"; fi
+        ;;
+      gopls|delve|gofumpt)
+        if command -v go &>/dev/null; then filtered+=("$pkg"); else warn "Saltando $pkg (requiere go)"; fi
+        ;;
+      black|isort|debugpy)
+        if command -v pip3 &>/dev/null; then filtered+=("$pkg"); else warn "Saltando $pkg (requiere python3-pip)"; fi
+        ;;
+      *)
+        filtered+=("$pkg")
+        ;;
+    esac
+  done
+  packages=("${filtered[@]}")
+
+  if [ ${#packages[@]} -eq 0 ]; then
+    info "No hay paquetes Mason instalables (faltan toolchains)."
+    return
+  fi
+
   info "Instalando ${#packages[@]} paquetes via Mason..."
   if $DRY_RUN; then
     echo "  ${YELLOW}[dry-run]${NC} MasonInstall ${packages[*]}"
-  else
-    "$nvim_bin" --headless "+MasonInstall ${packages[*]}" +qa 2>/dev/null || true
+    return
   fi
 
+  # Script Lua temporal: encola los paquetes via API y espera a que terminen
+  local lua_script="/tmp/tonyconf_mason.lua"
+  local errors_file="/tmp/tonyconf_mason_errors.txt"
+  : > "$errors_file"
+
+  {
+    echo "local registry = require(\"mason-registry\")"
+    echo "local packages = {"
+    for pkg in "${packages[@]}"; do
+      echo "  \"$pkg\","
+    done
+    echo "}"
+    echo "local queued = 0"
+    echo "for _, name in ipairs(packages) do"
+    echo "  local okp, pkg = pcall(registry.get_package, name)"
+    echo "  if okp and not pkg:is_installed() and not pkg:is_installing() then"
+    echo "    local ok = pcall(function() pkg:install() end)"
+    echo "    if ok then queued = queued + 1 end"
+    echo "  end"
+    echo "end"
+    echo "print('Paquetes encolados: ' .. queued)"
+    echo "local function any_installing()"
+    echo "  for _, name in ipairs(packages) do"
+    echo "    local ok_pkg, pkg = pcall(registry.get_package, name)"
+    echo "    if ok_pkg and pkg:is_installing() then return true end"
+    echo "  end"
+    echo "  return false"
+    echo "end"
+    echo "local deadline = vim.loop.hrtime() + 600e9"
+    echo "while any_installing() and vim.loop.hrtime() < deadline do"
+    echo "  vim.wait(1000)"
+    echo "end"
+    echo "local installed, failed = 0, 0"
+    echo "for _, name in ipairs(packages) do"
+    echo "  local ok_pkg, pkg = pcall(registry.get_package, name)"
+    echo "  if ok_pkg and pkg:is_installed() then"
+    echo "    print(string.format('[OK] %s', name))"
+    echo "    installed = installed + 1"
+    echo "  else"
+    echo "    print(string.format('[FAIL] %s', name))"
+    echo "    failed = failed + 1"
+    echo "    local f = io.open('$errors_file', 'a')"
+    echo "    if f then f:write(name .. '\\n') f:close() end"
+    echo "  end"
+    echo "end"
+    echo "print(string.format('RESUMEN: %d instalados, %d fallidos', installed, failed))"
+    echo "vim.cmd('qa!')"
+  } > "$lua_script"
+
+  # Filtrar el ruido de Mason (descargas) pero mostrar [OK]/[FAIL]/RESUMEN
+  "$nvim_bin" --headless -c "luafile $lua_script" 2>&1 \
+    | grep -E '^\[(OK|FAIL)\]|^RESUMEN|^Paquetes encolados' || true
+  if [ ${PIPESTATUS[0]:-0} -ne 0 ] && [ ${PIPESTATUS[0]:-0} -ne 130 ]; then
+    warn "La instalacion de paquetes Mason finalizo con codigo $?."
+    error_track "Instalacion de paquetes Mason finalizo con errores"
+  fi
+
+  if [ -s "$errors_file" ]; then
+    while IFS= read -r pkg; do
+      error_track "Paquete Mason fallido: $pkg"
+    done < "$errors_file"
+  fi
+
+  rm -f "$lua_script" "$errors_file"
   success "Paquetes Mason instalados"
 }
 
@@ -567,76 +768,41 @@ echo ""
 
 # ── Actualizar Neovim (modo independiente) ──────────────────────────────────
 if $UPDATE_NVIM; then
-  update_nvim_curl
+  update_nvim
   exit 0
 fi
 
 # ── Instalar dependencias ────────────────────────────────────────────────────
 install_deps
 
-# ── Instalar Neovim ──────────────────────────────────────────────────────────
-if $INSTALL_NVIM; then
-  # Forzar instalacion via curl desde GitHub
-  install_nvim_curl
-else
-  # Intentar via gestor de paquetes, comprobar version
-  if ! command -v nvim &>/dev/null; then
-    install_nvim_pkg
-  fi
+# ── Garantizar Neovim >= 0.12 ────────────────────────────────────────────────
+ensure_nvim
 
-  if ! check_nvim_version; then
-    local ret=$?
-    if [ $ret -eq 2 ]; then
-      # Version < 0.10
-      local pkg_version
-      pkg_version=$(nvim --version | head -1 | grep -oP '\d+\.\d+\.\d+' || echo "?")
-      echo ""
-      warn "Tu SO ($OS_TYPE) ofrece Neovim v$pkg_version."
-      echo "  Ejecuta este script con --install-nvim para descargar la ultima version:"
-      echo ""
-      echo -e "    ${BOLD}./install.sh --install-nvim${NC}"
-      echo ""
-      if [ "$OS_TYPE" = "macos" ]; then
-        echo "  O actualiza via brew: brew upgrade neovim"
-      fi
-      echo "  O instalalo manualmente desde https://github.com/neovim/neovim/releases"
-      exit 1
-    fi
-  fi
-fi
+# ── Nerd Font (requisito minimo para la UI de Neovim) ───────────────────────
+install_fonts "$WITH_FONTS"
 
-# ── Herramientas de IA ───────────────────────────────────────────────────────
+# ── Instalar config ──────────────────────────────────────────────────────────
+install_config
+
+# ── Instalar plugins, treesitter y Mason ─────────────────────────────────────
+install_plugins
+install_treesitter_parsers
+install_mason_packages
+
+# ── Herramientas de IA (opcional, excluidas con --base) ──────────────────────
 if $WITH_AI; then
   install_ai
 else
-  info "Herramientas de IA no incluidas. Añade --with-ai para instalarlas."
-fi
-
-# ── Nerd Font ────────────────────────────────────────────────────────────────
-if [ -n "$WITH_FONTS" ]; then
-  install_fonts "$WITH_FONTS"
-else
-  info "Nerd Font no incluida. Añade --with-fonts para elegir una (por defecto JetBrains Mono)."
-fi
-
-# ── Clonar config e instalar plugins ─────────────────────────────────────────
-clone_config
-check_nvim_version && install_plugins
-
-# ── Paquetes Mason ───────────────────────────────────────────────────────────
-if check_nvim_version 2>/dev/null; then
-  install_mason_packages
+  info "Herramientas de IA no incluidas (instalacion --base). Usa --with-ai para incluirlas."
 fi
 
 # ── Resumen ──────────────────────────────────────────────────────────────────
-echo ""
-echo -e "${BOLD}${GREEN}════════════════════════════════════════════════════════════${NC}"
-echo -e "${BOLD}${GREEN}  Instalacion completada!${NC}"
+report
+
 echo ""
 echo "  Abre Neovim con: ${BOLD}nvim${NC}"
 echo "  Gestiona plugins con: ${BOLD}:Lazy${NC}"
 echo "  Instala LSPs/debuggers con: ${BOLD}:Mason${NC}"
 echo ""
 echo "  Documentacion completa: ${CYAN}https://forge.tonymartos.com/tonymartos/tonyconf.nvim/wiki${NC}"
-echo -e "${BOLD}${GREEN}════════════════════════════════════════════════════════════${NC}"
 echo ""

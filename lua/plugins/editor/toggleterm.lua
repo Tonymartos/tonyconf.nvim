@@ -3,7 +3,11 @@ return {
     "akinsho/toggleterm.nvim",
     config = true,
     cmd = "ToggleTerm",
-    build = ":ToggleTerm",
+    build = function()
+      if vim.fn.has("headless") ~= 1 then
+        vim.cmd("ToggleTerm")
+      end
+    end,
     keys = { { "<leader>tt", "<cmd>ToggleTerm<cr>", desc = "Toggle terminal" } },
     opts = {
       open_mapping = [[<C-\>]],
