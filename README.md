@@ -67,6 +67,12 @@ tar xzf /tmp/tonyconf.tar.gz -C /tmp
 git clone https://github.com/Tonymartos/tonyconf.nvim.git /tmp/tonyconf && /tmp/tonyconf/install.sh
 ```
 
+### Via SSH (Forge privada)
+
+```bash
+git clone ssh://git@git.forge.tonymartos.com:2222/tonymartos/tonyconf.nvim.git /tmp/tonyconf && /tmp/tonyconf/install.sh
+```
+
 ### Manual (si ya tienes los archivos)
 
 ```bash
