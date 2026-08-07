@@ -129,12 +129,3 @@ fi
 if command -v pip3 &>/dev/null; then
   eval "$(pip3 completion --zsh)"
 fi
-
-# ── Lazy load heavy completions ──────────────────────────────────────────────
-__load_nvm() {
-  unset -f __load_nvm node npm npx
-  [ -s "$HOME/.nvm/nvm.sh" ] && source "$HOME/.nvm/nvm.sh"
-}
-alias node='__load_nvm && node'
-alias npm='__load_nvm && npm'
-alias npx='__load_nvm && npx'
