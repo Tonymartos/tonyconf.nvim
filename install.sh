@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# ── Reconectar stdin a la terminal para prompts interactivos ──────────────────
+# Cuando se ejecuta via curl | bash, stdin es el pipe (no TTY).
+# Redirigimos a /dev/tty para que los read funcionen correctamente.
+if [ ! -t 0 ] && [ -e /dev/tty ]; then
+  exec < /dev/tty
+fi
+
 # ── Colores ──────────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'
 CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
@@ -475,25 +482,16 @@ install_ai() {
     success "OpenCode ya instalado ($(opencode --version 2>/dev/null || echo '?'))"
   else
     info "Instalando OpenCode..."
-    run npm i -g @opencode/cli 2>/dev/null || {
-      warn "npm install fallo. Descargando binario..."
-      local url os_pattern
-      case "$(uname -s)" in
-        Darwin) os_pattern="darwin" ;;
-        Linux)  os_pattern="linux" ;;
-      esac
-      url=$(curl $CURL_OPTS https://api.github.com/repos/anomalyco/opencode/releases/latest 2>/dev/null \
-        | grep browser_download_url \
-        | grep "$os_pattern" \
-        | head -1 \
-        | cut -d '"' -f4 || true)
-      if [ -n "$url" ]; then
-        run curl $CURL_OPTS "$url" -o /tmp/opencode.tar.gz
-        run tar xzf /tmp/opencode.tar.gz -C ~/.local/bin/
-        run rm /tmp/opencode.tar.gz
-        success "OpenCode instalado via binario"
+    if $DRY_RUN; then
+      echo -e "  ${YELLOW}[dry-run]${NC} curl -fsSL https://opencode.ai/install | bash"
+    else
+      if curl -fsSL https://opencode.ai/install | bash; then
+        success "OpenCode instalado"
+      else
+        warn "No se pudo instalar OpenCode. Instalalo manualmente: https://opencode.ai"
+        error_track "Instalacion de OpenCode fallida"
       fi
-    }
+    fi
   fi
 
   # Claude Code
@@ -504,6 +502,22 @@ install_ai() {
     run curl $CURL_OPTS https://claude.ai/install.sh | bash
     success "Claude Code instalado"
   fi
+}
+
+# ── Mapear font_key -> familia de WezTerm ────────────────────────────────────
+get_wezterm_font() {
+  case "$1" in
+    JetBrainsMono)   echo "JetBrainsMono Nerd Font" ;;
+    CascadiaCode)    echo "CaskaydiaCove Nerd Font" ;;
+    FiraCode)        echo "FiraCode Nerd Font" ;;
+    Hack)            echo "Hack Nerd Font" ;;
+    SourceCodePro)   echo "SauceCodePro Nerd Font" ;;
+    UbuntuMono)      echo "UbuntuMono Nerd Font" ;;
+    DejaVuSansMono)  echo "DejaVuSansMono Nerd Font" ;;
+    Noto)            echo "NotoSansMono Nerd Font" ;;
+    Iosevka)         echo "Iosevka Nerd Font" ;;
+    *)               echo "JetBrainsMono Nerd Font" ;;
+  esac
 }
 
 # ── Instalar Nerd Font ───────────────────────────────────────────────────────
@@ -567,6 +581,8 @@ install_fonts() {
       font_label="JetBrains Mono"
     fi
   fi
+
+  WEZTERM_FONT_FAMILY=$(get_wezterm_font "$font_key")
 
   step "Instalando $font_label Nerd Font"
 
@@ -835,6 +851,308 @@ install_mason_packages() {
   success "Paquetes Mason instalados"
 }
 
+# ── Instalar config de WezTerm (opcional) ─────────────────────────────────────
+install_wezterm() {
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+  if [ ! -f "$script_dir/extras/wezterm.lua" ]; then
+    return
+  fi
+
+  local wezterm_dir="$HOME/.config/wezterm"
+  local wezterm_installed=false
+  if command -v wezterm &>/dev/null; then
+    wezterm_installed=true
+  fi
+
+  if [ -f "$wezterm_dir/wezterm.lua" ]; then
+    echo ""
+    echo "  Ya tienes una config de WezTerm en ~/.config/wezterm/wezterm.lua."
+    echo -n "  ¿Reemplazarla con la de tonyconf? (se respaldara la actual) [y/N] "
+    read -r answer
+    if [ "${answer,,}" != "y" ]; then
+      info "Conservando tu config de WezTerm actual."
+      return
+    fi
+    run cp "$wezterm_dir/wezterm.lua" "$wezterm_dir/wezterm.lua.bak.$(date +%Y%m%d-%H%M%S)"
+    info "Config existente respaldada"
+  elif $wezterm_installed; then
+    echo ""
+    echo "  WezTerm detectado. tonyconf incluye un tema kanagawa para el."
+    echo -n "  ¿Instalar config de WezTerm en ~/.config/wezterm/? [y/N] "
+    read -r answer
+    if [ "${answer,,}" != "y" ]; then
+      info "Saltando config de WezTerm."
+      return
+    fi
+  else
+    echo ""
+    echo "  WezTerm no esta instalado. tonyconf incluye un tema kanagawa"
+    echo "  y configuracion completa (tabline, smart-splits) para el."
+    echo -n "  ¿Instalar WezTerm + su config? [y/N] "
+    read -r answer
+    if [ "${answer,,}" != "y" ]; then
+      info "Saltando WezTerm."
+      return
+    fi
+    step "Instalando WezTerm"
+    case "$OS_TYPE" in
+      arch) run sudo pacman -S --needed --noconfirm wezterm ;;
+      fedora) run sudo dnf install -y wezterm ;;
+      debian)
+        warn "WezTerm no esta en los repos de Debian/Ubuntu. Instalalo manualmente: https://wezterm.org"
+        return
+        ;;
+      macos) run brew install --cask wezterm ;;
+      *) warn "SO no soportado. Instala WezTerm manualmente: https://wezterm.org"; return ;;
+    esac
+    success "WezTerm instalado"
+  fi
+
+  step "Instalando config de WezTerm"
+  run mkdir -p "$wezterm_dir"
+  if $DRY_RUN; then
+    echo -e "  ${YELLOW}[dry-run]${NC} sed ... extras/wezterm.lua > $wezterm_dir/wezterm.lua (fuente: ${WEZTERM_FONT_FAMILY:-CaskaydiaCove Nerd Font})"
+  else
+    sed "s/\"CaskaydiaCove Nerd Font\"/\"${WEZTERM_FONT_FAMILY:-CaskaydiaCove Nerd Font}\"/" \
+      "$script_dir/extras/wezterm.lua" > "$wezterm_dir/wezterm.lua"
+  fi
+  success "Config de WezTerm instalada en $wezterm_dir"
+}
+
+# ── Instalar terminfo de WezTerm ──────────────────────────────────────────────
+install_wezterm_terminfo() {
+  if infocmp wezterm &>/dev/null; then
+    return
+  fi
+
+  if ! command -v tic &>/dev/null; then
+    warn "tic (ncurses) no encontrado. La terminfo 'wezterm' no se instalara."
+    warn "Puedes instalar ncurses con tu gestor de paquetes y reintentar."
+    return
+  fi
+
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  local terminfo_src="$script_dir/extras/wezterm.terminfo"
+
+  if [ ! -f "$terminfo_src" ]; then
+    warn "No se encontro extras/wezterm.terminfo. Saltando instalacion de terminfo."
+    return
+  fi
+
+  if $DRY_RUN; then
+    echo -e "  ${YELLOW}[dry-run]${NC} tic -x extras/wezterm.terminfo"
+    return
+  fi
+
+  tic -x "$terminfo_src" 2>/dev/null || {
+    warn "No se pudo instalar la terminfo de WezTerm."
+    return
+  }
+
+  if infocmp wezterm &>/dev/null; then
+    success "Terminfo de WezTerm instalada"
+  fi
+}
+
+# ── Instalar config de ZSH (opcional) ────────────────────────────────────────
+install_zsh() {
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+  if [ ! -f "$script_dir/extras/zshrc" ]; then
+    return
+  fi
+
+  local zsh_was_installed=false
+  if command -v zsh &>/dev/null; then
+    zsh_was_installed=true
+  fi
+
+  if $zsh_was_installed; then
+    echo ""
+    echo "  ZSH detectado. tonyconf incluye config con plugins y starship."
+    echo -n "  ¿Instalar/actualizar la config de ZSH? [y/N] "
+    read -r answer
+    if [ "${answer,,}" != "y" ]; then
+      info "Saltando config de ZSH."
+      return
+    fi
+  else
+    echo ""
+    echo "  ZSH no esta instalado. tonyconf incluye un entorno ZSH completo:"
+    echo "  autosuggestions, syntax-highlighting, fzf, zoxide y starship."
+    echo -n "  ¿Instalar ZSH + plugins + config? [y/N] "
+    read -r answer
+    if [ "${answer,,}" != "y" ]; then
+      info "Saltando ZSH."
+      return
+    fi
+  fi
+
+  step "Instalando ZSH y plugins"
+
+  # ── Instalar ZSH (si no existe) ──────────────────────────────────
+  if ! $zsh_was_installed; then
+    case "$OS_TYPE" in
+      arch) run sudo pacman -S --needed --noconfirm zsh ;;
+      fedora) run sudo dnf install -y zsh ;;
+      debian) run sudo apt install -y zsh ;;
+      macos) run brew install zsh ;;
+      *) warn "SO no soportado. Instala ZSH manualmente."; return ;;
+    esac
+    success "ZSH instalado"
+  else
+    success "ZSH ya instalado ($(zsh --version 2>/dev/null | head -1))"
+  fi
+
+  # ── Instalar plugins y herramientas ZSH ─────────────────────────
+  if $zsh_was_installed; then
+    echo ""
+    echo "  ZSH ya estaba instalado. ¿Instalar tambien los plugins de ZSH?"
+    echo "  (autosuggestions, syntax-highlighting, fzf, zoxide)"
+    echo -n "  [y/N] "
+    read -r answer
+    if [ "${answer,,}" != "y" ]; then
+      info "Saltando instalacion de plugins ZSH."
+      _skip_zsh_plugins=true
+    fi
+  fi
+  # Definir antes de usar (Debian necesita el binario de zoxide)
+  install_zoxide_deb() {
+    if command -v zoxide &>/dev/null; then
+      return
+    fi
+    info "Descargando zoxide..."
+    local zo_url
+    zo_url=$(curl $CURL_OPTS https://api.github.com/repos/ajeetdsouza/zoxide/releases/latest 2>/dev/null \
+      | grep browser_download_url | grep x86_64-unknown-linux-musl | head -1 | cut -d '"' -f4 || true)
+    if [ -n "$zo_url" ]; then
+      run curl $CURL_OPTS "$zo_url" -o /tmp/zoxide.tar.gz
+      run tar xzf /tmp/zoxide.tar.gz -C /tmp
+      run install /tmp/zoxide ~/.local/bin/zoxide
+      run rm /tmp/zoxide.tar.gz /tmp/zoxide
+      success "zoxide instalado"
+    fi
+  }
+
+  if [ "${_skip_zsh_plugins:-false}" != true ]; then
+    info "Instalando plugins: autosuggestions, syntax-highlighting, fzf, zoxide..."
+    case "$OS_TYPE" in
+      arch)      run sudo pacman -S --needed --noconfirm zsh-autosuggestions zsh-syntax-highlighting fzf zoxide ;;
+      fedora)    run sudo dnf install -y zsh-autosuggestions zsh-syntax-highlighting fzf zoxide ;;
+      debian)    run sudo apt install -y zsh-autosuggestions zsh-syntax-highlighting fzf; install_zoxide_deb ;;
+      macos)     run brew install zsh-autosuggestions zsh-syntax-highlighting fzf zoxide ;;
+      *)         warn "SO no soportado. Instala manualmente: zsh-autosuggestions, zsh-syntax-highlighting, fzf, zoxide" ;;
+    esac
+  fi
+
+  # ── Instalar Starship ────────────────────────────────────────────
+  if command -v starship &>/dev/null; then
+    success "Starship ya instalado ($(starship --version 2>/dev/null))"
+  else
+    info "Instalando Starship prompt..."
+    if $DRY_RUN; then
+      echo -e "  ${YELLOW}[dry-run]${NC} curl -sS https://starship.rs/install.sh | sh -s -- -y"
+    else
+      if ! curl --proto '=https' --tlsv1.2 -sS https://starship.rs/install.sh | sh -s -- -y; then
+        warn "No se pudo instalar Starship. Instalalo manualmente: https://starship.rs"
+      else
+        success "Starship instalado en $HOME/.local/bin"
+      fi
+    fi
+  fi
+
+  # ── Copiar .zshrc ────────────────────────────────────────────────
+  if [ -f "$HOME/.zshrc" ]; then
+    echo ""
+    echo "  Ya tienes un ~/.zshrc configurado."
+    echo -n "  ¿Reemplazarlo con la config de tonyconf? (se respaldara el actual) [y/N] "
+    read -r answer
+    if [ "${answer,,}" != "y" ]; then
+      info "Conservando tu ~/.zshrc actual."
+    else
+      run mv "$HOME/.zshrc" "$HOME/.zshrc.bak.$(date +%Y%m%d-%H%M%S)"
+      info ".zshrc anterior respaldado"
+      _copy_zshrc=true
+    fi
+  else
+    _copy_zshrc=true
+  fi
+
+  # Adaptar rutas de plugins segun distro
+  local autosuggestions_path syntax_hl_path fzf_keybindings
+  case "$OS_TYPE" in
+    arch)
+      autosuggestions_path="/usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
+      syntax_hl_path="/usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+      fzf_keybindings="/usr/share/fzf/key-bindings.zsh"
+      ;;
+    debian)
+      autosuggestions_path="/usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+      syntax_hl_path="/usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+      fzf_keybindings="/usr/share/doc/fzf/examples/key-bindings.zsh"
+      ;;
+    fedora)
+      autosuggestions_path="/usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+      syntax_hl_path="/usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+      fzf_keybindings="/usr/share/fzf/shell/key-bindings.zsh"
+      ;;
+    macos)
+      autosuggestions_path="$(brew --prefix 2>/dev/null)/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+      syntax_hl_path="$(brew --prefix 2>/dev/null)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+      fzf_keybindings="$(brew --prefix 2>/dev/null)/opt/fzf/shell/key-bindings.zsh"
+      ;;
+    *)
+      autosuggestions_path="/usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+      syntax_hl_path="/usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+      fzf_keybindings="/usr/share/fzf/shell/key-bindings.zsh"
+      ;;
+  esac
+
+  if [ "${_copy_zshrc:-false}" = true ]; then
+    if $DRY_RUN; then
+      echo -e "  ${YELLOW}[dry-run]${NC} sed ... extras/zshrc > ~/.zshrc (plugins adaptados a $OS_TYPE)"
+    else
+      sed -e "s|/usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh|$autosuggestions_path|g" \
+          -e "s|/usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh|$syntax_hl_path|g" \
+          -e "s|/usr/share/fzf/shell/key-bindings.zsh|$fzf_keybindings|g" \
+          "$script_dir/extras/zshrc" > "$HOME/.zshrc"
+    fi
+    success ".zshrc instalado"
+  fi
+
+  # ── Copiar starship.toml ────────────────────────────────────────
+  if [ "${_copy_zshrc:-false}" = true ] && [ -f "$script_dir/extras/starship.toml" ]; then
+    local starship_dir="$HOME/.config"
+    run mkdir -p "$starship_dir"
+    if [ -f "$starship_dir/starship.toml" ]; then
+      run mv "$starship_dir/starship.toml" "$starship_dir/starship.toml.bak.$(date +%Y%m%d-%H%M%S)"
+      info "starship.toml anterior respaldado"
+    fi
+    run cp "$script_dir/extras/starship.toml" "$starship_dir/starship.toml"
+    success "starship.toml instalado en $starship_dir"
+  fi
+
+  # ── Cambiar shell por defecto ────────────────────────────────────
+  echo ""
+  echo -n "  ¿Establecer ZSH como shell por defecto? [y/N] "
+  read -r answer
+  if [ "${answer,,}" = "y" ]; then
+    if $DRY_RUN; then
+      echo -e "  ${YELLOW}[dry-run]${NC} chsh -s $(which zsh)"
+    else
+      if chsh -s "$(command -v zsh)" 2>/dev/null; then
+        success "ZSH establecido como shell por defecto"
+      else
+        warn "No se pudo cambiar el shell. Ejecuta manualmente: chsh -s $(command -v zsh)"
+      fi
+    fi
+  fi
+}
+
 # ══════════════════════════════════════════════════════════════════════════════
 # MAIN
 # ══════════════════════════════════════════════════════════════════════════════
@@ -873,6 +1191,13 @@ install_mason_packages
 # ── Herramientas de IA (paso 8: informa si --base) ───────────────────────────
 install_ai
 
+# ── Config de WezTerm (opcional) ──────────────────────────────────────────────
+install_wezterm
+install_wezterm_terminfo
+
+# ── Config de ZSH (opcional) ──────────────────────────────────────────────────
+install_zsh
+
 # ── Resumen ──────────────────────────────────────────────────────────────────
 report
 
@@ -881,5 +1206,5 @@ echo "  Abre Neovim con: ${BOLD}nvim${NC}"
 echo "  Gestiona plugins con: ${BOLD}:Lazy${NC}"
 echo "  Instala LSPs/debuggers con: ${BOLD}:Mason${NC}"
 echo ""
-echo "  Documentacion completa: ${CYAN}https://forge.tonymartos.com/tonymartos/tonyconf.nvim/wiki${NC}"
+echo "  Documentacion completa en la wiki del repositorio."
 echo ""

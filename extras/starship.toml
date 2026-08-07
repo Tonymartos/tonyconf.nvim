@@ -1,0 +1,93 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# STARSHIP CONFIG — tonyconf
+# ═══════════════════════════════════════════════════════════════════════════════
+
+format = "$os$directory$git_branch$git_status$cmd_duration$line_break$character"
+
+# ── Prompt ───────────────────────────────────────────────────────────────────
+[character]
+success_symbol = "[❯](green)"
+error_symbol = "[❯](red)"
+
+# ── Directory ────────────────────────────────────────────────────────────────
+[directory]
+truncation_length = 3
+truncate_to_repo = true
+style = "cyan"
+format = "[ $path]($style) "
+read_only = " "
+
+# ── Git ──────────────────────────────────────────────────────────────────────
+[git_branch]
+format = "[$symbol$branch]($style) "
+style = "magenta"
+
+[git_status]
+format = '[$all_status$ahead_behind]($style) '
+style = "yellow"
+conflicted = " "
+ahead = "⇡"
+behind = "⇣"
+diverged = "⇕"
+up_to_date = ""
+untracked = " "
+stashed = " "
+modified = " "
+staged = " "
+renamed = " "
+deleted = " "
+
+# ── OS ───────────────────────────────────────────────────────────────────────
+[os]
+format = "[$symbol]($style) "
+style = "green"
+
+[os.symbols]
+Linux = "󰣇 "
+Macos = " "
+Windows = "󰍲 "
+
+# ── Duration ─────────────────────────────────────────────────────────────────
+[cmd_duration]
+min_time = 3000
+format = "󱫫 [$duration]($style) "
+style = "yellow"
+
+# ── Language modules ─────────────────────────────────────────────────────────
+[nodejs]
+format = "via [$symbol($version)]($style) "
+style = "green"
+
+[rust]
+format = "via [$symbol($version)]($style) "
+style = "red"
+
+[python]
+format = "via [${symbol}${pyenv_prefix}(${version})\\($virtualenv\\)]($style) "
+style = "yellow"
+
+[docker_context]
+format = "via [$symbol$context](cyan) "
+
+[golang]
+format = "via [$symbol($version)]($style) "
+style = "cyan"
+
+[c]
+format = "via [$symbol$version]($style) "
+style = "blue"
+
+[dotnet]
+format = "via [$symbol($version)(🎯 $tfm)]($style) "
+style = "blue"
+
+# ── Shell indicators ─────────────────────────────────────────────────────────
+[shlvl]
+disabled = false
+format = "[$shlvl](yellow)"
+
+[status]
+disabled = false
+format = "[$symbol$status]($style) "
+style = "red"
+symbol = "✘ "

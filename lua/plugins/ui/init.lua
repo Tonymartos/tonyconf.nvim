@@ -31,7 +31,7 @@ return {
             information = { "undercurl" },
           },
         },
-        navic = { enabled = true, custom_bg = "lualine" },
+        navic = { enabled = true },
         neotest = true,
         neotree = true,
         noice = true,
@@ -215,11 +215,7 @@ return {
     end,
   },
 
-  -- Statusline
-  {
-    "nvim-lualine/lualine.nvim",
-    event = "VeryLazy",
-  },
+  -- Statusline: heirline.nvim (configurado en ui/heirline.lua)
 
   -- Mason: ensure tools are installed
   {

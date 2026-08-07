@@ -1,5 +1,5 @@
 ```
- ████████╗ ██████╗ ███╗   ██╗██╗   ██╗██╗   ██╗██╗███╗   ███╗
+████████╗ ██████╗ ███╗   ██╗██╗   ██╗██╗   ██╗██╗███╗   ███╗
 ╚══██╔══╝██╔═══██╗████╗  ██║╚██╗ ██╔╝██║   ██║██║████╗ ████║
    ██║   ██║   ██║██╔██╗ ██║ ╚████╔╝ ██║   ██║██║██╔████╔██║
    ██║   ██║   ██║██║╚██╗██║  ╚██╔╝  ╚██╗ ██╔╝██║██║╚██╔╝██║
@@ -8,6 +8,8 @@
 ```
 
 Configuracion de Neovim basada en [LazyVim](https://github.com/LazyVim/LazyVim), optimizada para desarrollo en **Rust**, **C# (.NET)**, **Godot/GDScript**, **Python**, **TypeScript** y multiples herramientas de IA.
+
+Incluye integracion completa con **WezTerm** (tabline, smart-splits, tema kanagawa) y configuracion de **ZSH** (starship, autosuggestions, fzf, zoxide).
 
 ## Requisitos
 
@@ -27,14 +29,13 @@ Configuracion de Neovim basada en [LazyVim](https://github.com/LazyVim/LazyVim),
 - [lazygit](https://github.com/jesseduffield/lazygit) — gestion visual de Git desde Neovim (`<leader>gg`)
 - [lazydocker](https://github.com/jesseduffield/lazydocker) — gestion visual de Docker desde terminal
 - **Nerd Font** — **requisito minimo**: sin ella los iconos del dashboard, statusline
-  (lualine), explorador (neo-tree), pestañas (barbar) y completado (blink.cmp) se ven
-  como cuadrados rotos. `install.sh` la instala siempre (por defecto JetBrains Mono).
+  (heirline), explorador (neo-tree), pestañas (barbar) y completado (blink.cmp) se ven
+  como cuadrados rotos. `install.sh` la instala siempre (por defecto CaskaydiaCove).
 
   > **Para aplicar la fuente en Neovim:** instalar la fuente no la activa por si sola.
-  > Debes seleccionarla en tu terminal. Si usas Alacritty, copia [`extras/alacritty.toml`](extras/alacritty.toml)
-  > en `~/.config/alacritty/alacritty.toml` y reinicia Alacritty. Si usas otro terminal
-  > (kitty, wezterm, foot, Windows Terminal, iTerm2, etc.), consulta como modificar la
-  > fuente en la documentacion de tu respectivo terminal.
+  > Debes seleccionarla en tu terminal. Si usas WezTerm, `install.sh` copia automaticamente
+  > [`extras/wezterm.lua`](extras/wezterm.lua) en `~/.config/wezterm/wezterm.lua`
+  > con la fuente seleccionada. Si usas Alacritty, copia [`extras/alacritty.toml`](extras/alacritty.toml).
   >
   > Puedes previsualizar los iconos y estilos en [nerdfonts.com](https://www.nerdfonts.com/font-downloads).
 
@@ -48,11 +49,28 @@ Configuracion de Neovim basada en [LazyVim](https://github.com/LazyVim/LazyVim),
 
 ## Instalacion
 
-### Automatica (recomendada)
+## Instalacion
+
+### Via curl + tar (GitHub)
 
 ```bash
-# Descomprime el zip en una carpeta y ejecuta el script desde ahi
-./install.sh                        # Instalacion completa (IA + Nerd Font + todo)
+curl -L -o /tmp/tonyconf.tar.gz https://github.com/Tonymartos/tonyconf.nvim/archive/refs/heads/main.tar.gz
+tar xzf /tmp/tonyconf.tar.gz -C /tmp
+/tmp/tonyconf.nvim-main/install.sh
+# Con flags:
+/tmp/tonyconf.nvim-main/install.sh --base --with-fonts=FiraCode
+```
+
+### Via git clone (GitHub)
+
+```bash
+git clone https://github.com/Tonymartos/tonyconf.nvim.git /tmp/tonyconf && /tmp/tonyconf/install.sh
+```
+
+### Manual (si ya tienes los archivos)
+
+```bash
+./install.sh                        # Instalacion completa (IA + Nerd Font + WezTerm + ZSH + todo)
 ./install.sh --base                 # Minima: deps + Nerd Font + config + plugins + treesitter + Mason (sin IA)
 ./install.sh --base --with-ai       # Minima + herramientas de IA
 ./install.sh --base --with-fonts=FiraCode   # Minima + fuente especifica
@@ -67,7 +85,7 @@ Configuracion de Neovim basada en [LazyVim](https://github.com/LazyVim/LazyVim),
 > sin necesidad de sudo. `~/.local/bin` se añade a tu PATH automaticamente.
 > Usa `./install.sh --update-nvim` en cualquier momento para actualizarlo.
 
-Opciones de Nerd Font: `JetBrainsMono` (por defecto), `CascadiaCode`, `FiraCode`,
+Opciones de Nerd Font: `CaskaydiaCove` (por defecto), `JetBrainsMono`, `FiraCode`,
 `Hack`, `SourceCodePro`, `UbuntuMono`, `DejaVuSansMono`, `Noto`, `Iosevka`.
 
 > **macOS**: si no tienes Homebrew, el script te pregunta y lo instala automaticamente.
@@ -98,6 +116,18 @@ Despues, instala los LSPs, debuggers y herramientas:
 ```
 
 Navega con `j/k` e instala con `i` sobre cada paquete.
+
+### Terminal (WezTerm + ZSH)
+
+`install.sh` configura automaticamente:
+
+- **WezTerm** con tema kanagawa, tabline completa (CPU, RAM, reloj, domain), smart-splits integrado con Neovim, y terminfo
+- **ZSH** con starship prompt, autosuggestions, syntax-highlighting, fzf (Ctrl+R fuzzy search), y zoxide (smart cd con `z`)
+
+```bash
+# Despues de instalar, cambia tu shell por defecto:
+chsh -s /usr/bin/zsh
+```
 
 ### LSP (Language Server Protocol)
 
@@ -152,40 +182,52 @@ Navega con `j/k` e instala con `i` sobre cada paquete.
 ## Estructura del repo
 
 ```
-~/.config/nvim/
+tonyconf.nvim/
 ├── init.lua                        # Punto de entrada
 ├── stylua.toml                     # Formateador Lua
-├── lua/
-│   ├── config/
-│   │   ├── tonyconf.lua            # Bootstrap lazy.nvim + LazyVim
-│   │   ├── options.lua             # Opciones globales de Vim
-│   │   ├── keymaps.lua             # Atajos adicionales
-│   │   ├── autocmds.lua            # Autocomandos adicionales
-│   │   └── grug-file-options.lua   # Config de grug-far
-│   └── plugins/
-│       ├── ai/                     # Plugins de IA
-│       │   ├── opencode.lua        # OpenCode integrado en terminal
-│       │   ├── claude-code.lua     # Claude Code integrado en terminal
-│       │   └── avante.lua          # Asistente con diff/keep/undo
-│       ├── editor/                 # Plugins de edicion
-│       │   ├── autosave.lua        # Auto-guardado
-│       │   ├── dash.lua            # Dashboard de inicio
-│       │   ├── minidiff.lua        # Visualizacion de diffs
-│       │   └── toggleterm.lua      # Terminal flotante
-│       ├── lang/                   # Soporte de lenguajes
-│       │   ├── rust.lua            # Rust (rustaceanvim)
-│       │   ├── csharp.lua          # C#/.NET (omnisharp + netcoredbg)
-│       │   └── godot.lua           # Godot/GDScript
-│       ├── dap/                    # Debugging
-│       │   └── nvim-dap.lua        # DAP: C#, Rust, JS/TS, Go
-│       ├── tools/                  # Herramientas
-│       │   ├── grug-far.lua        # Busqueda y reemplazo
-│       │   ├── remote-vim.lua      # Edicion remota via SSH
-│       │   └── imgclip.lua         # Pegar imagenes
-│       └── ui/                     # Interfaz
-│           ├── init.lua            # Plugins core: neo-tree, telescope, etc
-│           ├── dressing.lua        # UI para inputs/selects
-│           └── gitsigns.lua        # Indicadores git en gutter
+├── install.sh                      # Instalador automatico
+├── README.md
+├── extras/                         # Configs de terminal
+│   ├── wezterm.lua                 # WezTerm: kanagawa + tabline + smart-splits
+│   ├── wezterm.terminfo            # Terminfo de WezTerm
+│   ├── zshrc                       # ZSH: starship + autosuggestions + fzf + zoxide
+│   ├── starship.toml               # Starship prompt customizado
+│   └── alacritty.toml              # Alacritty (legacy)
+├── wiki/                           # Documentacion
+└── lua/
+    ├── config/
+    │   ├── tonyconf.lua            # Bootstrap lazy.nvim + LazyVim
+    │   ├── options.lua             # Opciones globales de Vim
+    │   ├── keymaps.lua             # Atajos adicionales
+    │   ├── autocmds.lua            # Autocomandos adicionales
+    │   └── grug-file-options.lua   # Config de grug-far
+    └── plugins/
+        ├── ai/                     # Plugins de IA
+        │   ├── opencode.lua        # OpenCode integrado en terminal
+        │   ├── claude-code.lua     # Claude Code integrado en terminal
+        │   └── avante.lua          # Asistente con diff/keep/undo
+        ├── editor/                 # Plugins de edicion
+        │   ├── autosave.lua        # Auto-guardado
+        │   ├── dash.lua            # Dashboard de inicio
+        │   ├── minidiff.lua        # Visualizacion de diffs
+        │   ├── toggleterm.lua      # Terminal flotante
+        │   └── smart-splits.lua    # Navegacion Neovim ↔ WezTerm panes
+        ├── lang/                   # Soporte de lenguajes
+        │   ├── rust.lua            # Rust (rustaceanvim)
+        │   ├── csharp.lua          # C#/.NET (omnisharp + netcoredbg)
+        │   └── godot.lua           # Godot/GDScript
+        ├── dap/                    # Debugging
+        │   └── nvim-dap.lua        # DAP: C#, Rust, JS/TS, Go
+        ├── tools/                  # Herramientas
+        │   ├── grug-far.lua        # Busqueda y reemplazo
+        │   ├── remote-vim.lua      # Edicion remota via SSH
+        │   └── imgclip.lua         # Pegar imagenes
+        └── ui/                     # Interfaz
+            ├── init.lua            # Plugins core: neo-tree, telescope, kanagawa, etc
+            ├── heirline.lua        # Statusline + Winbar con colores kanagawa
+            ├── dressing.lua        # UI para inputs/selects
+            ├── gitsigns.lua        # Indicadores git en gutter
+            └── which-key.lua       # Menu de atajos
 ```
 
 ## Plugins incluidos
@@ -206,6 +248,7 @@ Navega con `j/k` e instala con `i` sobre cada paquete.
 | `snacks.nvim` | Dashboard con accesos rapidos |
 | `mini.diff` | Visualizacion de diffs |
 | `toggleterm` | Terminal flotante con `<F4>` |
+| `smart-splits.nvim` | Navegacion seamless entre splits de Neovim y panes de WezTerm |
 
 ### UI y navegacion
 
@@ -214,7 +257,7 @@ Navega con `j/k` e instala con `i` sobre cada paquete.
 | `neo-tree` | Explorador de archivos lateral |
 | `telescope` | Busqueda fuzzy de archivos/texto (`<leader>f`) |
 | `barbar` | Pestañas/tabs en la parte superior |
-| `lualine` | Barra de estado |
+| `heirline.nvim` | Barra de estado con colores kanagawa + winbar con breadcrumbs |
 | `indent-blankline` | Guias de indentacion |
 | `dressing` | UI mejorada para inputs y selects |
 
@@ -246,6 +289,14 @@ Navega con `j/k` e instala con `i` sobre cada paquete.
 ## Atajos de teclado
 
 > Presiona `<leader>` (Space) y espera: **which-key** mostrara todos los grupos disponibles.
+
+### Navegacion de panes (smart-splits)
+
+| Atajo | Contexto | Descripcion |
+|-------|----------|-------------|
+| `Ctrl+h/j/k/l` | Neovim | Mover entre splits. Al borde → cruza al pane de WezTerm |
+| `Ctrl+h/j/k/l` | WezTerm | Mover entre panes. Si es Neovim → navega splits internos |
+| `Alt+h/j/k/l` | Ambos | Redimensionar split/pane actual |
 
 ### IA
 
@@ -417,6 +468,14 @@ claude --version
 claude
 ```
 
+### WezTerm: no se ven iconos en la tabline
+
+Asegurate de que la Nerd Font este instalada y seleccionada en WezTerm. `install.sh` configura `CaskaydiaCove Nerd Font` automaticamente.
+
+### WezTerm: error `'wezterm': unknown terminal type`
+
+Ejecuta `./install.sh` — el instalador registra la terminfo de WezTerm automaticamente via `tic`.
+
 ### Avante no funciona
 
 Asegurate de tener la variable de entorno `ANTHROPIC_API_KEY` configurada:
@@ -427,14 +486,14 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 
 ## Documentacion completa
 
-Guia de uso, primeros pasos con Neovim, y mas en la **[Wiki](https://forge.tonymartos.com/tonymartos/tonyconf.nvim/wiki)**:
+Guia de uso, primeros pasos con Neovim, y mas en la **wiki** del repositorio:
 
-- [Primeros pasos con Neovim](https://forge.tonymartos.com/tonymartos/tonyconf.nvim/wiki/Primeros-pasos-con-Neovim) - Si nunca has usado Neovim
-- [Guia de LazyVim](https://forge.tonymartos.com/tonymartos/tonyconf.nvim/wiki/Guia-de-LazyVim) - Atajos, Mason, extras, personalizacion
-- [AI Agents](https://forge.tonymartos.com/tonymartos/tonyconf.nvim/wiki/AI-Agents) - OpenCode, Claude Code, Avante
-- [Debugging](https://forge.tonymartos.com/tonymartos/tonyconf.nvim/wiki/Debugging) - DAP para C#, Rust, JS/TS, Go
-- [Rust](https://forge.tonymartos.com/tonymartos/tonyconf.nvim/wiki/Rust-Development) / [C#](https://forge.tonymartos.com/tonymartos/tonyconf.nvim/wiki/CSharp-Development) / [Godot](https://forge.tonymartos.com/tonymartos/tonyconf.nvim/wiki/Godot-GDScript)
-- [Troubleshooting](https://forge.tonymartos.com/tonymartos/tonyconf.nvim/wiki/Troubleshooting)
+- Primeros pasos con Neovim — Si nunca has usado Neovim
+- Guia de LazyVim — Atajos, Mason, extras, personalizacion
+- AI Agents — OpenCode, Claude Code, Avante
+- Debugging — DAP para C#, Rust, JS/TS, Go
+- Rust / C# / Godot — Guias por lenguaje
+- Troubleshooting — Solucion de problemas comunes
 
 ---
 
