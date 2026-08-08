@@ -31,6 +31,9 @@ ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=8'
 ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 
 # ── Syntax Highlighting (fish-like) ──────────────────────────────────────────
+typeset -gA ZSH_HIGHLIGHT_STYLES
+ZSH_HIGHLIGHT_STYLES[default]='none'
+ZSH_HIGHLIGHT_STYLES[unknown-token]='fg=red'
 source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
 # ── FZF (fuzzy finder) ──────────────────────────────────────────────────────
