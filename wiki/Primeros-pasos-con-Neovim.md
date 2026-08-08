@@ -268,13 +268,23 @@ Dentro de la terminal:
 | `<leader>an` | OpenCode: nueva sesion |
 | `<leader>ac` | OpenCode: continuar sesion |
 | `<leader>aa` | OpenCode: enviar seleccion al prompt |
-| `<leader>cc` | Claude Code: toggle ventana (necesita Claude Code instalado) |
+| `<leader>ab` | OpenCode: enviar buffer completo |
+| `<leader>ad` | OpenCode: enviar diagnosticos LSP |
+| `<leader>Cc` | Claude Code: toggle ventana |
+| `<leader>Cn` | Claude Code: nueva sesion |
+| `<leader>Cv` | Claude Code: abrir en vsplit |
+| `<leader>Cs` | Claude Code: enviar seleccion |
+| `<leader>CS` | Claude Code: guardar sesion |
+| `<leader>Cb` | Claude Code: ver sesiones guardadas |
 | `<leader>aia` | Avante: preguntar con diff view |
+| `<leader>air` | Avante: refrescar respuesta |
+| `<leader>aie` | Avante: editar seleccion |
 
 **Prueba ahora:**
 1. Abre un archivo de codigo.
 2. Selecciona una funcion con `v` + movimiento.
 3. Pulsa `<Space>aa` para preguntarle a OpenCode sobre esa seleccion.
+4. Pulsa `<Space>Cc` para abrir Claude Code.
 
 ### 3.2 Debugging (DAP)
 

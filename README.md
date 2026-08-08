@@ -243,7 +243,7 @@ tonyconf.nvim/
 | Plugin | Atajo | Descripcion |
 |--------|-------|-------------|
 | `opencode.nvim` | `<leader>a` | OpenCode embebido en terminal lateral |
-| `claude-code.nvim` | `<leader>c` | Claude Code en split vertical |
+| `claude-code.nvim` | `<leader>C` | Claude Code en split vertical |
 | `avante.nvim` | `<leader>ai` | Asistente con diff view (keep/undo) |
 
 ### Editor
@@ -315,12 +315,15 @@ tonyconf.nvim/
 | `<leader>ab` | n | OpenCode: enviar buffer completo |
 | `<leader>ad` | n | OpenCode: enviar diagnosticos LSP |
 | `<leader>av` | x | OpenCode: revisar seleccion |
-| `<leader>cc` | n | Claude Code: toggle ventana |
-| `<leader>cn` | n | Claude Code: nueva sesion |
-| `<leader>cv` | n | Claude Code: abrir en vsplit |
-| `<leader>cs` | v | Claude Code: enviar seleccion |
-| `<leader>cS` | n | Claude Code: guardar sesion |
-| `<leader>cb` | n | Claude Code: ver sesiones guardadas |
+| `<leader>cc` | n | LSP: Run Codelens |
+| `<leader>ca` | n | LSP: Code Action |
+| `<leader>cr` | n | LSP: Rename |
+| `<leader>Cc` | n | Claude Code: toggle ventana |
+| `<leader>Cn` | n | Claude Code: nueva sesion |
+| `<leader>Cv` | n | Claude Code: abrir en vsplit |
+| `<leader>Cs` | v | Claude Code: enviar seleccion |
+| `<leader>CS` | n | Claude Code: guardar sesion |
+| `<leader>Cb` | n | Claude Code: ver sesiones guardadas |
 | `<leader>aia` | n, v | Avante: preguntar (con diff view) |
 | `<leader>air` | n | Avante: refrescar respuesta |
 | `<leader>aie` | n, v | Avante: editar seleccion |
