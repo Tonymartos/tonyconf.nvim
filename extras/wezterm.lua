@@ -132,6 +132,7 @@ table.insert(config.keys, { key = "+", mods = "CTRL", action = wezterm.action.In
 table.insert(config.keys, { key = "-", mods = "CTRL", action = wezterm.action.DecreaseFontSize })
 table.insert(config.keys, { key = "0", mods = "CTRL", action = wezterm.action.ResetFontSize })
 table.insert(config.keys, { key = "v", mods = "CTRL|SHIFT", action = wezterm.action.PasteFrom("Clipboard") })
+table.insert(config.keys, { key = "v", mods = "CTRL|SHIFT", action = wezterm.action.PasteFrom("Clipboard") })
 table.insert(config.keys, { key = "c", mods = "CTRL|SHIFT", action = wezterm.action.CopyTo("Clipboard") })
 
 return config
