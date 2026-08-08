@@ -478,7 +478,7 @@ install_ai() {
   step "Instalando herramientas de IA"
 
   # OpenCode
-  if command -v opencode &>/dev/null; then
+  if command -v opencode &>/dev/null || [ -x "$HOME/.opencode/bin/opencode" ]; then
     success "OpenCode ya instalado ($(opencode --version 2>/dev/null || echo '?'))"
   else
     info "Instalando OpenCode..."

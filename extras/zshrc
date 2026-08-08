@@ -104,6 +104,8 @@ export LC_ALL='es_ES.UTF-8'
 # ── PATH ─────────────────────────────────────────────────────────────────────
 export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
 export PATH="$HOME/.cargo/bin:$PATH"
+[ -d "$HOME/.opencode/bin" ] && export PATH="$HOME/.opencode/bin:$PATH"
+[ -d "$HOME/.nvm" ] && export NVM_DIR="$HOME/.nvm"
 
 # ── Tool-specific completions ────────────────────────────────────────────────
 if command -v kubectl &>/dev/null; then
