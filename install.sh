@@ -1138,16 +1138,26 @@ install_zsh() {
 
   # ── Cambiar shell por defecto ────────────────────────────────────
   echo ""
+  echo -e "  ${YELLOW}🔒${NC} El comando \`chsh\` necesita tu contraseña de usuario"
+  echo "  para cambiar el shell por defecto a ZSH."
   echo -n "  ¿Establecer ZSH como shell por defecto? [y/N] "
   read -r answer
   if [ "${answer,,}" = "y" ]; then
     if $DRY_RUN; then
       echo -e "  ${YELLOW}[dry-run]${NC} chsh -s $(which zsh)"
     else
+      echo ""
+      info "Ejecutando chsh (introduce tu contraseña cuando aparezca el candado)..."
       if chsh -s "$(command -v zsh)" 2>/dev/null; then
         success "ZSH establecido como shell por defecto"
       else
-        warn "No se pudo cambiar el shell. Ejecuta manualmente: chsh -s $(command -v zsh)"
+        warn "No se pudo cambiar el shell por defecto."
+        if [ "$OS_TYPE" = "fedora" ]; then
+          warn "En Fedora con autenticacion por huella, prueba:"
+          info "  sudo chsh -s $(command -v zsh) $USER"
+        else
+          info "  Ejecuta manualmente: chsh -s $(command -v zsh)"
+        fi
       fi
     fi
   fi
